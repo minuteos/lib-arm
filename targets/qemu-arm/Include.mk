@@ -13,3 +13,5 @@ TEST_RUN = qemu-system-arm -machine lm3s6965evb -monitor null -serial null -nogr
 
 # LM3S6965 is a Cortex-M3
 TARGETS += cortex-m3
+
+COMPONENTS += base
