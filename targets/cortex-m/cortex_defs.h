@@ -5,8 +5,11 @@
  *
  * cortex-m/cortex_defs.h
  * 
- * Placeholder to be overriden in specific targets
+ * Global defines specific to ARM Cortex-M MCUs
  */
 
 #pragma once
 
+#define HAS_MALLOC_ONCE 1
+
+extern void* malloc_once(size_t size);

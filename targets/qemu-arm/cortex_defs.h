@@ -8,4 +8,8 @@
  * Additional definitions for running under QEMU
  */
 
+#pragma once
+
+#include_next <cortex_defs.h>
+
 #define CORTEX_HALT(res) exit(res)
