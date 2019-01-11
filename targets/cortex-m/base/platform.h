@@ -30,3 +30,12 @@ EXTERN_C volatile Cortex_ITM_Port_t* Cortex_GetDebugChannel(unsigned channel);
 
 #define PLATFORM_DBG_ACTIVE(channel)        ((CoreDebug->DEMCR & CoreDebug_DEMCR_TRCENA_Msk) && (ITM->TER & (1 << (channel))))
 #define PLATFORM_DBG_CHAR(channel, char)    ({ Cortex_GetDebugChannel(channel)->u8 = (char); })
+
+typedef void (*cortex_handler_t)(void);
+
+extern void Cortex_SetIRQHandler(IRQn_Type IRQn, cortex_handler_t handler);
+
+#ifdef __cplusplus
+#include <base/Delegate.h>
+extern void Cortex_SetIRQHandler(IRQn_Type IRQn, Delegate<void> handler);
+#endif
