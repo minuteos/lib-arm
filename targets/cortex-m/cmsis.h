@@ -25,9 +25,14 @@ typedef enum IRQn
 
 #define __NVIC_PRIO_BITS          0U        /* Number of Bits used for Priority Levels */
 
+#ifdef __ARM_FP
+#define __FPU_PRESENT             1U
+#endif
 
 #ifdef __ARM_ARCH_6M__
 #include "core_cm0.h"
+#elif __ARM_ARCH_7EM__
+#include "core_cm4.h"
 #else
 #include "core_cm3.h"
 #endif
