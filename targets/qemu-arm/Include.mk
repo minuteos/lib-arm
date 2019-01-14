@@ -15,3 +15,8 @@ TEST_RUN = qemu-system-arm -machine lm3s6965evb -monitor null -serial null -nogr
 TARGETS += cortex-m3
 
 COMPONENTS += base
+
+.PHONY: run
+
+run: $(OUTPUT).elf
+	@$(TEST_RUN) $(OUTPUT).elf
