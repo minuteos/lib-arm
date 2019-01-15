@@ -3,7 +3,7 @@
  * Licensed under the MIT license. See LICENSE.txt file in the repository root
  * for full license information.
  *
- * qemu-arm/platform.h
+ * qemu-arm/base/platform.h
  * 
  * Platform definitions for QEMU semihosting
  */
@@ -13,13 +13,7 @@
 #define PLATFORM_DBG_CHAR(channel, ch) angel_output(NULL, ch)
 #define PLATFORM_DBG_ACTIVE(channel) ((channel) == 0)
 
-#define MONO_FREQUENCY  100
-#define MONO_CLOCKS     angel_clock()
 #define MONO_US (angel_clock() * 10000)
-
-typedef uint32_t mono_t;
-
-#define PLATFORM_SLEEP(...)
 
 BEGIN_EXTERN_C
 
