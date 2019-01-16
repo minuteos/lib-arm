@@ -63,8 +63,8 @@ extern "C" void Missing_Handler(void* arg0)
 extern "C" void HardFault_Handler()
 {
 #if TRACE
-	uint* regs;
-	uint* regs2;
+	uint32_t* regs;
+	uint32_t* regs2;
 
 	__asm volatile (
 		"tst lr, #4\n"
