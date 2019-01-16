@@ -24,4 +24,12 @@
 #define CORTEX_DEFAULT_SLEEP
 extern void Cortex_Sleep(mono_t until);
 #define PLATFORM_SLEEP(since, duration) Cortex_Sleep((since) + (duration))
+
+#if CORTEX_DEEP_SLEEP_ENABLED
+extern void Cortex_DeepSleep(mono_t until);
+extern int Cortex_NoDeepSleep;
+#define PLATFORM_DEEP_SLEEP_DISABLE() Cortex_NoDeepSleep++;
+#define PLATFORM_DEEP_SLEEP_ENABLE() Cortex_NoDeepSleep--;
+#endif
+
 #endif
