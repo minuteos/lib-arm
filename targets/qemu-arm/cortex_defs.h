@@ -4,7 +4,7 @@
  * for full license information.
  *
  * qemu-arm/cortex_defs.h
- * 
+ *
  * Additional definitions for running under QEMU
  */
 

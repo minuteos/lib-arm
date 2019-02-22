@@ -4,7 +4,7 @@
  * for full license information.
  *
  * qemu-arm/base/platform.h
- * 
+ *
  * Platform definitions for QEMU semihosting
  */
 

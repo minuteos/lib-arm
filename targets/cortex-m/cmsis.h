@@ -4,7 +4,7 @@
  * for full license information.
  *
  * cortex-m/cmsis.h
- * 
+ *
  * Fallback minimal CMSIS root header, specific targets should override it
  */
 
@@ -36,4 +36,3 @@ typedef enum IRQn
 #else
 #include "core_cm3.h"
 #endif
-

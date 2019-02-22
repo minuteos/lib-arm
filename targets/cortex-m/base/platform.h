@@ -4,7 +4,7 @@
  * for full license information.
  *
  * cortex-m/base/platform.h
- * 
+ *
  * Common includes for all Cortex-M MCUs
  */
 

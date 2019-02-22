@@ -4,7 +4,7 @@
  * for full license information.
  *
  * cortex-m/kernel/platform.h
- * 
+ *
  * Kernel support for Cortex-M MCUs
  */
 

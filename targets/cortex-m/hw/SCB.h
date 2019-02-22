@@ -19,28 +19,28 @@
 class _SCB : public SCB_Type
 {
 public:
-	typedef void (*IRQHandler)();
+    typedef void (*IRQHandler)();
 
-	void SetISRTable(IRQHandler* tbl) { VTOR = (uint32_t)tbl; }
-	void SetIRQHandler(IRQn_Type irqn, IRQHandler h) { ((IRQHandler*)VTOR)[irqn + NVIC_USER_IRQ_OFFSET] = h; }
+    void SetISRTable(IRQHandler* tbl) { VTOR = (uint32_t)tbl; }
+    void SetIRQHandler(IRQn_Type irqn, IRQHandler h) { ((IRQHandler*)VTOR)[irqn + NVIC_USER_IRQ_OFFSET] = h; }
 
 #ifdef __SOFTFP__
-	void EnableFPU() {}
+    void EnableFPU() {}
 #else
-	void EnableFPU()
-	{
-		CPACR |= 0x00F00000;
-		__DSB();
-		__ISB();
-	}
+    void EnableFPU()
+    {
+        CPACR |= 0x00F00000;
+        __DSB();
+        __ISB();
+    }
 #endif
 
-	void Sleep() { DisableDeepSleep(); __WFI(); }
-	void DeepSleep() { EnableDeepSleep(); __WFI(); }
-	void DisableDeepSleep() { SCR &= ~SCB_SCR_SLEEPDEEP_Msk; }
-	void EnableDeepSleep() { SCR |= SCB_SCR_SLEEPDEEP_Msk; }
+    void Sleep() { DisableDeepSleep(); __WFI(); }
+    void DeepSleep() { EnableDeepSleep(); __WFI(); }
+    void DisableDeepSleep() { SCR &= ~SCB_SCR_SLEEPDEEP_Msk; }
+    void EnableDeepSleep() { SCR |= SCB_SCR_SLEEPDEEP_Msk; }
 
-	bool IRQPending() { return ICSR & SCB_ICSR_ISRPENDING_Msk; }
-	IRQn_Type PendingIRQn() { return IRQn_Type(((ICSR & SCB_ICSR_VECTPENDING_Msk) >> SCB_ICSR_VECTPENDING_Pos) - NVIC_USER_IRQ_OFFSET); }
-	IRQn_Type ActiveIRQn() { return IRQn_Type(((ICSR & SCB_ICSR_VECTACTIVE_Msk) >> SCB_ICSR_VECTACTIVE_Pos) - NVIC_USER_IRQ_OFFSET); }
+    bool IRQPending() { return ICSR & SCB_ICSR_ISRPENDING_Msk; }
+    IRQn_Type PendingIRQn() { return IRQn_Type(((ICSR & SCB_ICSR_VECTPENDING_Msk) >> SCB_ICSR_VECTPENDING_Pos) - NVIC_USER_IRQ_OFFSET); }
+    IRQn_Type ActiveIRQn() { return IRQn_Type(((ICSR & SCB_ICSR_VECTACTIVE_Msk) >> SCB_ICSR_VECTACTIVE_Pos) - NVIC_USER_IRQ_OFFSET); }
 };

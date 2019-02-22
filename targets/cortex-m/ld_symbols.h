@@ -4,7 +4,7 @@
  * for full license information.
  *
  * ld_symbols.h
- * 
+ *
  * declarations of various symbols exported by default.ld
  */
 

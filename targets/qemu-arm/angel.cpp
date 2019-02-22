@@ -4,7 +4,7 @@
  * for full license information.
  *
  * qemu-arm/syscalls.cpp
- * 
+ *
  * Implementation of printf using the ARM Angel interface
  */
 
@@ -50,7 +50,7 @@ void abort(void)
     angel(SysCall::Exit, (const void*)ExitReason::Error);
     for (;;);
 }
- 
+
 void angel_output(void* context, char ch)
 {
     angel(SysCall::WriteChar, &ch);

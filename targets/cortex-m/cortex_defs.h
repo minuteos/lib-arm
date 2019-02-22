@@ -4,7 +4,7 @@
  * for full license information.
  *
  * cortex-m/cortex_defs.h
- * 
+ *
  * Global defines specific to ARM Cortex-M MCUs
  */
 

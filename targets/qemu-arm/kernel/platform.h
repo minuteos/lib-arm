@@ -4,7 +4,7 @@
  * for full license information.
  *
  * qemu-arm/kernel/platform.h
- * 
+ *
  * Kernel support for QEMU semihosting
  */
 
