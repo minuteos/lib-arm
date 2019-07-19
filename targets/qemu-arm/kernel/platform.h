@@ -12,6 +12,7 @@
 
 #define MONO_CLOCKS     angel_clock()
 #define MONO_US (angel_clock() * 10000)
+#define MONO_FREQUENCY  100
 
 typedef uint32_t mono_t;
 
