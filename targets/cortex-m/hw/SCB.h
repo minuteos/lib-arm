@@ -35,12 +35,15 @@ public:
     }
 #endif
 
-    void Sleep() { DisableDeepSleep(); __WFI(); }
-    void DeepSleep() { EnableDeepSleep(); __WFI(); }
+    void Sleep() { DisableDeepSleep(); WaitForInterrupt(); }
+    void DeepSleep() { EnableDeepSleep(); WaitForInterrupt(); }
     void DisableDeepSleep() { SCR &= ~SCB_SCR_SLEEPDEEP_Msk; }
     void EnableDeepSleep() { SCR |= SCB_SCR_SLEEPDEEP_Msk; }
 
     bool IRQPending() { return ICSR & SCB_ICSR_ISRPENDING_Msk; }
     IRQn_Type PendingIRQn() { return IRQn_Type(((ICSR & SCB_ICSR_VECTPENDING_Msk) >> SCB_ICSR_VECTPENDING_Pos) - NVIC_USER_IRQ_OFFSET); }
     IRQn_Type ActiveIRQn() { return IRQn_Type(((ICSR & SCB_ICSR_VECTACTIVE_Msk) >> SCB_ICSR_VECTACTIVE_Pos) - NVIC_USER_IRQ_OFFSET); }
+
+private:
+    void WaitForInterrupt();
 };

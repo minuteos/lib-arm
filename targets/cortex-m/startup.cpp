@@ -98,6 +98,11 @@ void Cortex_SetIRQHandler(IRQn_Type IRQn, handler_t handler)
     g_isrTableSys[IRQn + NVIC_USER_IRQ_OFFSET] = handler;
 }
 
+void Cortex_SetIRQWakeup(IRQn_Type IRQn)
+{
+    NVIC_SetPriority(IRQn, 0xFF);
+}
+
 // symbols provided by LD
 extern handler_t __init_array_start[];
 extern handler_t __init_array_end[];
@@ -115,6 +120,7 @@ extern "C" __attribute__((noreturn)) void Default_Reset_Handler()
 #endif
 
     SCB->EnableFPU();
+    __set_BASEPRI(0xFF);    // lowest priority IRQs only wake up the MCU, but don't execute handlers
     CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
     DWT->CYCCNT = 0;
     DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
