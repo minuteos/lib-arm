@@ -12,9 +12,9 @@
 
 #include <hw/SCB.h>
 
-#ifdef CORTEX_DEFAULT_SLEEP
+#if CORTEX_DEFAULT_SLEEP_AVAILABLE
 
-#if CORTEX_DEEP_SLEEP_ENABLED
+#if CORTEX_DEFAULT_DEEP_SLEEP
 int Cortex_NoDeepSleep;
 #endif
 
@@ -23,7 +23,7 @@ void Cortex_Sleep(mono_t wakeAt)
     mono_t sleepAt = MONO_CLOCKS;
 
 #if CORTEX_DEEP_SLEEP_ENABLED
-    if (!Cortex_NoDeepSleep)
+    if (PLATFORM_DEEP_SLEEP_ENABLED())
     {
         auto wakeDelayUs = CORTEX_DEEP_SLEEP_RESTORE_US();
         auto wakeDelayTicks = MonoFromMicroseconds(wakeDelayUs);

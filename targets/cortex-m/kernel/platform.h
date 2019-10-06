@@ -20,16 +20,28 @@
 #define PLATFORM_ENABLE_INTERRUPTS __enable_irq
 #endif
 
-#if !defined(PLATFORM_SLEEP) && defined(CORTEX_SCHEDULE_WAKEUP) && defined(CORTEX_CLEAN_WAKEUP)
-#define CORTEX_DEFAULT_SLEEP
+
+#if defined(CORTEX_SCHEDULE_WAKEUP) && defined(CORTEX_CLEAN_WAKEUP)
+
+#define CORTEX_DEFAULT_SLEEP_AVAILABLE 1
+
 extern void Cortex_Sleep(mono_t until);
-#define PLATFORM_SLEEP(since, duration) Cortex_Sleep((since) + (duration))
-
-#if CORTEX_DEEP_SLEEP_ENABLED
 extern void Cortex_DeepSleep(mono_t until);
-extern int Cortex_NoDeepSleep;
-#define PLATFORM_DEEP_SLEEP_DISABLE() Cortex_NoDeepSleep++;
-#define PLATFORM_DEEP_SLEEP_ENABLE() Cortex_NoDeepSleep--;
-#endif
 
+#if CORTEX_DEEP_SLEEP_ENABLED && !defined(PLATFORM_DEEP_SLEEP_ENABLED)
+
+#define CORTEX_DEFAULT_DEEP_SLEEP   1
+extern int Cortex_NoDeepSleep;
+
+#define PLATFORM_DEEP_SLEEP_DISABLE() (Cortex_NoDeepSleep++)
+#define PLATFORM_DEEP_SLEEP_ENABLE() (Cortex_NoDeepSleep--)
+#define PLATFORM_DEEP_SLEEP_ENABLED() (!Cortex_NoDeepSleep)
+
+#endif  /* CORTEX_DEEP_SLEEP_ENABLED && !defined(PLATFORM_DEEP_SLEEP_ENABLED) */
+
+#endif  /* defined(CORTEX_SCHEDULE_WAKEUP) && defined(CORTEX_CLEAN_WAKEUP) */
+
+#if !defined(PLATFORM_SLEEP) && CORTEX_DEFAULT_SLEEP_AVAILABLE
+#define CORTEX_DEFAULT_SLEEP    1
+#define PLATFORM_SLEEP(since, duration) Cortex_Sleep((since) + (duration))
 #endif
