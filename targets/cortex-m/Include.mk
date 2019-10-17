@@ -19,6 +19,8 @@ LINK_FLAGS += -Tdefault.ld -nostartfiles -Wl,--gc-sections,-Map,$(OUTPUT).map -s
 
 TARGETS += cmsis
 
+PRIMARY_EXT = .axf
+
 # we also generate a raw binary image for direct flashing
 .PHONY: binary ihex srec
 
