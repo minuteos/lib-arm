@@ -20,11 +20,19 @@ LINK_FLAGS += -Tdefault.ld -nostartfiles -Wl,--gc-sections,-Map,$(OUTPUT).map -s
 TARGETS += cmsis
 
 # we also generate a raw binary image for direct flashing
-.PHONY: binary
-
-all: binary
+.PHONY: binary ihex srec
 
 binary: $(OUTPUT).bin
 
-$(OUTPUT).bin: $(OUTPUT).elf
+ihex: $(OUTPUT).hex
+
+srec: $(OUTPUT).s37
+
+$(OUTPUT).bin: $(PRIMARY_OUTPUT)
 	$(OBJCOPY) -O binary $< $@
+
+$(OUTPUT).s37: $(PRIMARY_OUTPUT)
+	$(OBJCOPY) -O srec $< $@
+
+$(OUTPUT).hex: $(PRIMARY_OUTPUT)
+	$(OBJCOPY) -O ihex $< $@
