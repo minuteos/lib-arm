@@ -14,8 +14,11 @@ TOOLCHAIN_PREFIX = arm-none-eabi-
 # the packages for individual cores are more specific
 ARCH_FLAGS ?= -mthumb
 
+# overridable LD script
+LD_SCRIPT ?= default.ld
+
 # try to keep the output binary as small as possible
-LINK_FLAGS += -Tdefault.ld -nostartfiles -Wl,--gc-sections,-Map,$(OUTPUT).map -specs=nano.specs
+LINK_FLAGS += -T$(LD_SCRIPT) -nostartfiles -Wl,--gc-sections,-Map,$(OUTPUT).map -specs=nano.specs
 
 TARGETS += cmsis
 
