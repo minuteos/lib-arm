@@ -42,6 +42,13 @@ void Cortex_Sleep(mono_t wakeAt)
 #endif
             return;
         }
+#ifdef CORTEX_DEEP_SLEEP_AFTER
+        if (canSleep)
+        {
+            // if CORTEX_DEEP_SLEEP_BEFORE() returned true, we must pair it with a CORTEX_DEEP_SLEEP_AFTER()
+            CORTEX_DEEP_SLEEP_AFTER();
+        }
+#endif
     }
 #endif
 
