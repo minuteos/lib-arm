@@ -23,13 +23,10 @@ STACK_RESERVED = 8K;
 /* Memory map with segments FLASH and RAM should be provided by a more specific target */
 INCLUDE memmap.ld
 
-SECTIONS {
-    /* optional bootloader */
-    .boot : {
-        KEEP(*(.boot))
-        __boot_end = .;
-    } >FLASH
+INCLUDE sections_pre.ld
 
+SECTIONS {
+    __boot_end = .;
     __app_start = .;
 
     /* Cortex-M image starts with an ISR table which also contains the initial SP */
@@ -127,3 +124,5 @@ SECTIONS {
         KEEP(*(.sig*))
     } >FLASH
 }
+
+INCLUDE sections_post.ld
