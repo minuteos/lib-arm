@@ -136,7 +136,8 @@ extern "C" __attribute__((noreturn)) void Default_Reset_Handler()
     memset(&__bss_start, 0, &__bss_end - &__bss_start);
 
     // prepare the ISR table
-    for (uint32_t i = 0; i < ISR_COUNT; i++)
+    // do not touch entry 0, as it's not a real ISR and is may be used by bootloaders for communication
+    for (uint32_t i = 1; i < ISR_COUNT; i++)
     {
         g_isrTableSys[i] = &Interrupt_Handler;
         g_isrTable[i] = &Missing_Handler;
@@ -158,7 +159,11 @@ extern "C" __attribute__((noreturn)) void Default_Reset_Handler()
     CORTEX_STARTUP_BEFORE_C_INIT();
 #endif
 
+#if BOOTLOADER
+    DBG("============= BOOTLOADER =============\n");
+#else
     DBG("=============== RESET ===============\n");
+#endif
 
     // CRT init (static constructors, global initializers, etc...)
     for (handler_t* initptr = __init_array_start; initptr < __init_array_end; initptr++)
@@ -174,6 +179,17 @@ extern "C" __attribute__((noreturn)) void Default_Reset_Handler()
     // finally
     DBG("init: starting main()\n");
     main();
+
+#if BOOTLOADER
+    // when main completes, jump to the actual application
+    SCB->VTOR = 0;
+    __asm volatile(
+        "movs r0, #0\n"
+        "ldr sp, [r0]\n"
+        "ldr r0, [r0, #4]\n"
+        "blx r0\n"
+    );
+#endif
 
     // main should never return, but if it does...
     CORTEX_HALT(0);
