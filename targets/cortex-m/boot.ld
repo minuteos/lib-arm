@@ -104,7 +104,7 @@ SECTIONS {
     } >RAM
 
     /* reserved stack space at the top of RAM */
-    .stack STACK_END - STACK_RESERVED : {
+    .stack STACK_END - STACK_RESERVED (INFO) : {
         __heap_end = .;
         __stack_start = .;
         . += STACK_RESERVED;
