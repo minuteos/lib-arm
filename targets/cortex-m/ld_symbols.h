@@ -19,6 +19,7 @@ extern char __bss_end;
 extern char __data_start;
 extern char __data_end;
 extern char __data_load;
+extern char __data_load_end;
 extern char __heap_start;
 extern char __heap_end;
 extern char __ram_start;

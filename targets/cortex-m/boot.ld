@@ -92,6 +92,8 @@ SECTIONS {
         __data_end = .;
     } >RAM
 
+    __data_load_end = __text_end + SIZEOF(.data);
+
     /* allocation heap */
     .heap : {
         __heap_start = .;
