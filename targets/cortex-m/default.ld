@@ -27,20 +27,18 @@ INCLUDE sections_pre.ld
 
 SECTIONS {
     __boot_end = .;
-    __app_start = .;
 
     /* Cortex-M image starts with an ISR table which also contains the initial SP */
     .isr_vector : {
+        __app_start = .;
         KEEP(*(.isr_vector))
         . = ALIGN(4);
     } >FLASH
+}
 
-    /* information for the bootloader */
-    .bootinfo : {
-        KEEP(*(.bootinfo))
-        . = ALIGN(4);
-    } >FLASH
+INCLUDE sections_post_isr.ld
 
+SECTIONS {
     /* code (.text), constants (.rodata), and linktime grouped declarations (.rospec) */
     .text : {
         *(.text)
