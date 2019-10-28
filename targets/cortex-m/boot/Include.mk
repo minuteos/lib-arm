@@ -33,12 +33,17 @@ $(BOOT_OUTPUT).o: $(BOOT_OUTPUT).bin
 
 $(BOOT_OUTPUT).bin: export COMPONENTS := boot $(BOOT_COMPONENTS)
 $(BOOT_OUTPUT).bin: export DEFINES    := BOOTLOADER
+$(BOOT_OUTPUT).bin: export TARGET     := $(TARGET)
+$(BOOT_OUTPUT).bin: export TARGETS    := $(TARGETS)
 $(BOOT_OUTPUT).bin:
-	$(MAKE) -f $(BASE_DIR)Base.mk PROJECT_SOURCE_DIR=$(BOOT_DIR) CONFIG=$(BOOT_CONFIG) OUTDIR=$(BOOT_OUTDIR) OBJDIR=$(BOOT_OBJDIR) NAME=bootloader LD_SCRIPT=boot.ld "TARGETS=$(TARGETS)" main binary
+	$(MAKE) -f $(BASE_DIR)Base.mk PROJECT_SOURCE_DIR=$(BOOT_DIR) CONFIG=$(BOOT_CONFIG) OUTDIR=$(BOOT_OUTDIR) OBJDIR=$(BOOT_OBJDIR) NAME=bootloader LD_SCRIPT=boot.ld main binary
 
 else
 
 COMPONENTS += kernel-app
+
+ifeq (Release,CONFIG)
 ARCH_FLAGS += -flto -ffunction-sections
+endif
 
 endif
