@@ -56,7 +56,25 @@ extern "C" void Interrupt_Handler()
 
 extern "C" void Missing_Handler(void* arg0)
 {
+#if TRACE
+    uint32_t* regs;
+    uint32_t* regs2;
+
+    __asm volatile (
+        "tst lr, #4\n"
+        "ite eq\n"
+        "mrseq %0, msp\n"
+        "mrsne %0, psp\n"
+        "push {r4-r11}\n"	// make the remaining registers available
+        "mov %1, sp\n"
+    : "=r" (regs), "=r" (regs2));
+
     DBG("Unhandled IRQ: %d\n", SCB->ActiveIRQn());
+    DBG("R0: %08x  R1: %08x  R2: %08x  R3: %08x\n", regs[0], regs[1], regs[2], regs[3]);
+    DBG("R4: %08x  R5: %08x  R6: %08x  R7: %08x\n", regs2[0], regs2[1], regs2[2], regs2[3]);
+    DBG("R8: %08x  R9: %08x  R10:%08x  R11:%08x\n", regs2[4], regs2[5], regs2[6], regs2[7]);
+    DBG("R12:%08x  LR: %08x  PC: %08x  PSR:%08x\n", regs[4], regs[5], regs[6], regs[7]);
+#endif
     CORTEX_HALT(1);
 }
 
