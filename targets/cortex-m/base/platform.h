@@ -15,6 +15,18 @@
 
 #include <cmsis.h>
 
+#ifdef Ccmsis_dsp
+
+BEGIN_EXTERN_C
+
+#include <arm_math.h>
+#include <arm_const_structs.h>
+#include <arm_common_tables.h>
+
+END_EXTERN_C
+
+#endif
+
 #include_next <base/platform.h>
 
 #define CM_PERIPHERAL(type, base) ((type*)(base))
