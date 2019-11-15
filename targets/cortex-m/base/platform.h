@@ -48,7 +48,7 @@ EXTERN_C volatile Cortex_ITM_Port_t* Cortex_GetDebugChannel(unsigned channel);
 typedef void (*cortex_handler_t)(void);
 
 extern void Cortex_SetIRQHandler(IRQn_Type IRQn, cortex_handler_t handler);
-extern void Cortex_SetIRQWakeup(IRQn_Type IRQn);
+static inline void Cortex_SetIRQWakeup(IRQn_Type IRQn) { NVIC_SetPriority(IRQn, 0xFF); }
 
 #ifdef __cplusplus
 #include <base/Delegate.h>

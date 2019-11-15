@@ -116,11 +116,6 @@ void Cortex_SetIRQHandler(IRQn_Type IRQn, handler_t handler)
     g_isrTableSys[IRQn + NVIC_USER_IRQ_OFFSET] = handler;
 }
 
-void Cortex_SetIRQWakeup(IRQn_Type IRQn)
-{
-    NVIC_SetPriority(IRQn, 0xFF);
-}
-
 // symbols provided by LD
 extern handler_t __init_array_start[];
 extern handler_t __init_array_end[];
