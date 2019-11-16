@@ -29,7 +29,7 @@ SECTIONS {
     __boot_end = .;
 
     /* Cortex-M image starts with an ISR table which also contains the initial SP */
-    .isr_vector : {
+    .text.isr_vector : {
         __app_start = .;
         KEEP(*(.isr_vector))
         . = ALIGN(4);
@@ -50,12 +50,24 @@ SECTIONS {
     } >FLASH
 
     /* libc initialization */
-    .init_array : {
+    .text.init_array : {
         PROVIDE_HIDDEN(__init_array_start = .);
         KEEP(*(SORT(.init_array.*)))
         KEEP(*(.init_array*))
         PROVIDE_HIDDEN(__init_array_end = .);
     } >FLASH
+
+    .text.ARM.extab :
+    {
+        *(.ARM.extab* .gnu.linkonce.armextab.*)
+    } >FLASH
+
+    __exidx_start = .;
+    .text.ARM.exidx :
+    {
+        *(.ARM.exidx* .gnu.linkonce.armexidx.*)
+    } >FLASH
+    __exidx_end = .;
 
     /* end of FLASH data */
     __text_end = .;
