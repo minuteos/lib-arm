@@ -194,6 +194,10 @@ extern "C" __attribute__((noreturn)) void Default_Reset_Handler()
     main();
 
 #if BOOTLOADER
+#ifdef CORTEX_STARTUP_BEFORE_BOOT
+    CORTEX_STARTUP_BEFORE_BOOT();
+#endif
+    DBGCL("boot", "starting application");
     // when main completes, jump to the actual application
     SCB->VTOR = 0;
     __asm volatile(
