@@ -158,14 +158,14 @@ extern "C" __attribute__((noreturn)) void Default_Reset_Handler()
     CORTEX_STARTUP_HARDWARE_INIT();
 #endif
 
-#ifdef CORTEX_STARTUP_BEFORE_C_INIT
-    CORTEX_STARTUP_BEFORE_C_INIT();
-#endif
-
 #if BOOTLOADER
     DBG("============= BOOTLOADER =============\n");
 #else
     DBG("=============== RESET ===============\n");
+#endif
+
+#ifdef CORTEX_STARTUP_BEFORE_C_INIT
+    CORTEX_STARTUP_BEFORE_C_INIT();
 #endif
 
     // CRT init (static constructors, global initializers, etc...)
