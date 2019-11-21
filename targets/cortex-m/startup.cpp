@@ -48,10 +48,10 @@ extern "C" void Interrupt_Handler()
 {
     __asm volatile( \
         "mrs r1, ipsr\n"
-        "mov r0, r1, lsl #3\n"
-        "movt r0, #0x2000\n"
+        "lsls r0, r1, #3\n"
+        "movt r0, %0\n"
         "ldmia r0, {r0, pc}\n"
-    );
+    : : "i" (RAM_MEM_BASE >> 16));
 }
 
 extern "C" void Missing_Handler(void* arg0)
