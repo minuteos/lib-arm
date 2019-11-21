@@ -16,10 +16,10 @@
 #include <ld_symbols.h>
 
 // actual handlers
-extern "C" void Reset_Handler() __attribute__((naked, noreturn, alias("Default_Reset_Handler")));
-extern "C" void Interrupt_Handler() __attribute__((naked));
-extern "C" void HardFault_Handler() __attribute__((naked, noreturn));
-extern "C" void Missing_Handler(void*) __attribute__((naked, noreturn));
+extern "C" void Reset_Handler() __attribute__((naked, noreturn, weak, alias("Default_Reset_Handler")));
+extern "C" void Interrupt_Handler() __attribute__((naked, weak, alias("Default_Interrupt_Handler")));
+extern "C" void HardFault_Handler() __attribute__((naked, noreturn, weak, alias("Default_HardFault_Handler")));
+extern "C" void Missing_Handler(void*) __attribute__((naked, noreturn, weak, alias("Default_Missing_Handler")));
 
 // system ISRs + IRQs
 #define ISR_COUNT	(NVIC_USER_IRQ_OFFSET + EXT_IRQ_COUNT)
@@ -44,7 +44,7 @@ Delegate<void> g_isrTable[ISR_COUNT];
 __attribute__ ((section(".bss.isr_vector_sys")))
 handler_t g_isrTableSys[ISR_COUNT];
 
-extern "C" void Interrupt_Handler()
+extern "C" __attribute__((naked)) void Default_Interrupt_Handler()
 {
     __asm volatile( \
         "mrs r1, ipsr\n"
@@ -54,55 +54,45 @@ extern "C" void Interrupt_Handler()
     : : "i" (RAM_MEM_BASE >> 16));
 }
 
-extern "C" void Missing_Handler(void* arg0)
-{
 #if TRACE
-    uint32_t* regs;
-    uint32_t* regs2;
-
-    __asm volatile (
-        "tst lr, #4\n"
-        "ite eq\n"
-        "mrseq %0, msp\n"
-        "mrsne %0, psp\n"
-        "push {r4-r11}\n"	// make the remaining registers available
-        "mov %1, sp\n"
-    : "=r" (regs), "=r" (regs2));
-
-    DBG("Unhandled IRQ: %d\n", SCB->ActiveIRQn());
+extern "C" void Reg_Dump(uint32_t* regs, uint32_t* regs2)
+{
     DBG("R0: %08x  R1: %08x  R2: %08x  R3: %08x\n", regs[0], regs[1], regs[2], regs[3]);
     DBG("R4: %08x  R5: %08x  R6: %08x  R7: %08x\n", regs2[0], regs2[1], regs2[2], regs2[3]);
     DBG("R8: %08x  R9: %08x  R10:%08x  R11:%08x\n", regs2[4], regs2[5], regs2[6], regs2[7]);
     DBG("R12:%08x  LR: %08x  PC: %08x  PSR:%08x\n", regs[4], regs[5], regs[6], regs[7]);
-#endif
-    CORTEX_HALT(1);
 }
 
-extern "C" void HardFault_Handler()
+ALWAYS_INLINE void TRACE_REG_DUMP()
 {
-#if TRACE
-    uint32_t* regs;
-    uint32_t* regs2;
-
     __asm volatile (
         "tst lr, #4\n"
         "ite eq\n"
-        "mrseq %0, msp\n"
-        "mrsne %0, psp\n"
+        "mrseq r0, msp\n"
+        "mrsne r0, psp\n"
         "push {r4-r11}\n"	// make the remaining registers available
-        "mov %1, sp\n"
-    : "=r" (regs), "=r" (regs2));
+        "mov r1, sp\n"
+        "bl Reg_Dump\n");
+}
+#else
+#define TRACE_REG_DUMP()
+#endif
 
+extern "C" __attribute__((naked)) void Default_Missing_Handler(void* arg0)
+{
+    TRACE_REG_DUMP();
+    DBG("Unhandled IRQ: %d\n", SCB->ActiveIRQn());
+    CORTEX_HALT(1);
+}
+
+extern "C" __attribute__((naked)) void Default_HardFault_Handler()
+{
+    TRACE_REG_DUMP();
     DBG("HARD FAULT!\n");
     DBG("HFSR: %08x\n", *(int*)0xE000ED2C);
     DBG("DFSR: %08x\n", *(int*)0xE000ED30);
     DBG("LFSR: %08x\n", *(int*)0xE000ED28);
     DBG("BFAR: %08x\n", *(int*)0xE000ED38);
-    DBG("R0: %08x  R1: %08x  R2: %08x  R3: %08x\n", regs[0], regs[1], regs[2], regs[3]);
-    DBG("R4: %08x  R5: %08x  R6: %08x  R7: %08x\n", regs2[0], regs2[1], regs2[2], regs2[3]);
-    DBG("R8: %08x  R9: %08x  R10:%08x  R11:%08x\n", regs2[4], regs2[5], regs2[6], regs2[7]);
-    DBG("R12:%08x  LR: %08x  PC: %08x  PSR:%08x\n", regs[4], regs[5], regs[6], regs[7]);
-#endif
     CORTEX_HALT(1);
 }
 
