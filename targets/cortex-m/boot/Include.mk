@@ -40,9 +40,9 @@ $(BOOT_OUTPUT).bin:
 
 else
 
-COMPONENTS += kernel-app
+COMPONENTS += kernel
 
-ifeq (Release,CONFIG)
+ifeq (Release,$(CONFIG))
 ARCH_FLAGS += -flto -ffunction-sections
 endif
 
