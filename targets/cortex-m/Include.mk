@@ -37,7 +37,7 @@ $(OUTPUT).bin: $(PRIMARY_OUTPUT)
 	$(OBJCOPY) -O binary $< $@
 
 $(OUTPUT).s37: $(PRIMARY_OUTPUT)
-	$(OBJCOPY) -O srec $< $@
+	$(OBJCOPY) -O srec --srec-forceS3 $< $@
 
 $(OUTPUT).hex: $(PRIMARY_OUTPUT)
 	$(OBJCOPY) -O ihex $< $@
