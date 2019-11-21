@@ -61,7 +61,7 @@ SECTIONS {
     __text_end = .;
 
     /* BSS starts with dual-entry vector table (ISR + param), followed by system vector table */
-    .bss : {
+    .bss ORIGIN(RAM) : {
         __ram_start = .;
         *(.bss.isr_vector)
         . = ALIGN(512);
@@ -69,6 +69,8 @@ SECTIONS {
         *(.bss.bootdata)
 
         /* start of true BSS */
+        . += 1;
+        . = ALIGN(LENGTH(RAM) / 2);   /* reserve bottom half of available RAM for apploader */
         __bss_start = .;
         *(.bss)
         *(.bss*)
