@@ -17,7 +17,6 @@ MEMORY {
 }
 
 /* stack ends at the top of the RAM, minimal size reserved to warn during compilation */
-STACK_END = ORIGIN(RAM) + LENGTH(RAM);
 STACK_RESERVED = 8K;
 
 /* Memory map with segments FLASH and RAM should be provided by a more specific target */
@@ -72,13 +71,21 @@ SECTIONS {
     /* end of FLASH data */
     __text_end = .;
 
-    /* BSS starts with dual-entry vector table (ISR + param), followed by system vector table */
-    .bss : {
+    /* reserved stack space at the bottom of RAM */
+    .stack : {
         __ram_start = .;
-        *(.bss.isr_vector)
+        __stack_start = .;
+        . += STACK_RESERVED;
+        __stack_end = .;
+    } >RAM
+
+    /* BSS starts with the system vector table (has to be 512-byte aligned, stack size usually is),
+     * followed by the dual-entry interrupt delegate table (ISR + param)
+     */
+    .bss : {
         . = ALIGN(512);
         *(.bss.isr_vector_sys)
-        *(.bss.bootdata)
+        *(.bss.isr_vector)
 
         /* start of true BSS */
         __bss_start = .;
@@ -113,14 +120,8 @@ SECTIONS {
     /* allocation heap */
     .heap : {
         __heap_start = .;
-    } >RAM
-
-    /* reserved stack space at the top of RAM */
-    .stack STACK_END - STACK_RESERVED (INFO) : {
+        . = ORIGIN(RAM) + LENGTH(RAM);
         __heap_end = .;
-        __stack_start = .;
-        . += STACK_RESERVED;
-        __stack_end = .;
         __ram_end = .;
     } >RAM
 
