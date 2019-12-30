@@ -35,7 +35,6 @@ extern handler_t const g_initialVectors[] =
 };
 
 // Delegate table for actual ISRs
-// LD script must enforce this to be located at the start of RAM (0x20000000)
 __attribute__ ((section(".bss.isr_vector")))
 Delegate<void> g_isrTable[ISR_COUNT];
 
@@ -47,11 +46,11 @@ handler_t g_isrTableSys[ISR_COUNT];
 extern "C" __attribute__((naked)) void Default_Interrupt_Handler()
 {
     __asm volatile( \
+        "movw r0, #:lower16:g_isrTable\n"
+        "movt r0, #:upper16:g_isrTable\n"
         "mrs r1, ipsr\n"
-        "lsls r0, r1, #3\n"
-        "movt r0, %0\n"
-        "ldmia r0, {r0, pc}\n"
-    : : "i" (RAM_MEM_BASE >> 16));
+        "add r0, r0, r1, lsl #3\n"
+        "ldmia r0, {r0, pc}\n");
 }
 
 #if TRACE
