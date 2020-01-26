@@ -36,13 +36,17 @@ END_EXTERN_C
 #define CORTEX_HALT(n)  for(;;)
 #endif
 
-typedef union { uint8_t u8; uint16_t u16; uint32_t u32; } Cortex_ITM_Port_t;
-
-EXTERN_C volatile Cortex_ITM_Port_t* Cortex_GetDebugChannel(unsigned channel);
+EXTERN_C int Cortex_DebugWrite(unsigned channelAndSize, uint32_t data);
 
 #if !defined(PLATFORM_DBG_ACTIVE) && !defined(PLATFORM_DBG_CHAR)
-#define PLATFORM_DBG_ACTIVE(channel)        ((CoreDebug->DEMCR & CoreDebug_DEMCR_TRCENA_Msk) && (ITM->TER & (1 << (channel))))
-#define PLATFORM_DBG_CHAR(channel, char)    ({ Cortex_GetDebugChannel(channel)->u8 = (char); })
+#define PLATFORM_DBG_ACTIVE(channel)        Cortex_DebugWrite((channel) | 0x60, 0)
+#define PLATFORM_DBG_CHAR(channel, char)    Cortex_DebugWrite((channel), (char))
+#endif
+#ifndef PLATFORM_DBG_HALFWORD
+#define PLATFORM_DBG_HALFWORD(channel, hw)  Cortex_DebugWrite((channel) | 0x20, (hw))
+#endif
+#ifndef PLATFORM_DBG_WORD
+#define PLATFORM_DBG_WORD(channel, word)    Cortex_DebugWrite((channel) | 0x40, (word))
 #endif
 
 typedef void (*cortex_handler_t)(void);

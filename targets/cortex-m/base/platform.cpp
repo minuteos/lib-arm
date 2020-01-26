@@ -10,21 +10,34 @@
 
 #include <base/base.h>
 
-volatile Cortex_ITM_Port_t* Cortex_GetDebugChannel(unsigned channel)
+int Cortex_DebugWrite(unsigned channelAndSize, uint32_t data)
 {
-    static Cortex_ITM_Port_t discard;
-    volatile Cortex_ITM_Port_t* port = (Cortex_ITM_Port_t*)&ITM->PORT[channel];
+    uint32_t channel = channelAndSize & 0x1F;
 
-    if (port->u32 != 0)
-        return port;
+    if (!(CoreDebug->DEMCR & CoreDebug_DEMCR_TRCENA_Msk))
+        return false;
+    if (!GETBIT(ITM->TER, channel))
+        return false;
 
-    for (uint i = 0; i < 256; i++)
+    auto& port = ITM->PORT[channel];
+    if (!port.u32)
     {
-        if (port->u32 != 0)
-            return port;
-        if (!GETBIT(ITM->TER, channel))
-            break;
+        // wait for a while for the port to become available
+        unsigned wait = 255;
+        do
+        {
+            if (!--wait)
+            {
+                return false;
+            }
+        } while (!port.u32);
     }
 
-    return &discard;
+    switch (channelAndSize >> 5)
+    {
+        case 0: port.u8 = data; break;
+        case 1: port.u16 = data; break;
+        case 2: port.u32 = data; break;
+    }
+    return true;
 }
