@@ -8,7 +8,7 @@
  * Emulated FLASH in QEMU
  */
 
-#include <base/base.h>
+#include <kernel/kernel.h>
 
 #ifndef EMULATED_FLASH_SIZE
 #define EMULATED_FLASH_SIZE     16384
@@ -32,6 +32,7 @@ public:
     static bool WriteWord(const void* ptr, uint32_t word);
     static void ShredWord(const void* ptr);
     static bool Erase(Span range);
+    static async(ErasePageAsync, const void* ptr);
 };
 
 }

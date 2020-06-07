@@ -4,7 +4,7 @@
  * for full license information.
  *
  * qemu-arm/nvram/Flash.cpp
- * 
+ *
  * Emulated "FLASH" in qemu-arm
  * Because qemu-system-arm does not emulate the FLASH peripheral, we just fake it in RAM
  */
@@ -53,5 +53,14 @@ bool Flash::Erase(Span range)
     memset((void*)range.Pointer(), 0xFF, range.Length());
     return true;
 }
+
+async(Flash::ErasePageAsync, const void* ptr)
+async_def()
+{
+    memset((void*)ptr, 0xFF, EMULATED_FLASH_PAGE_SIZE);
+    async_delay_ms(10);
+    async_return(true);
+}
+async_end
 
 }
