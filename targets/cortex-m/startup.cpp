@@ -123,9 +123,6 @@ extern "C" __attribute__((noreturn)) void Default_Reset_Handler()
 
     SCB->EnableFPU();
     __set_BASEPRI(0xFF);    // lowest priority IRQs only wake up the MCU, but don't execute handlers
-    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-    DWT->CYCCNT = 0;
-    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 
 #ifdef CORTEX_STARTUP_BEFORE_INIT
     CORTEX_STARTUP_BEFORE_INIT();
