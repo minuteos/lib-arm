@@ -15,31 +15,38 @@
 
 #include <ld_symbols.h>
 
-//#define MALLOC_DEBUG
+#define DIAG_ALLOC      1
+#define DIAG_HEAP       2
+#define DIAG_FREECHAIN  4
 
-#ifdef MALLOC_DEBUG
-#define MYDBG(fmt, ...)	DBGC("malloc", fmt, ## __VA_ARGS__)
-#define _MYDBG(...)	_DBG(__VA_ARGS__)
+//#define MALLOC_DIAG     DIAG_ALLOC
 
-ALWAYS_INLINE uint32_t __LR()
+#define MYDBG(...)      DBGCL("malloc", __VA_ARGS__)
+
+ALWAYS_INLINE static uint32_t __LR()
 {
     uint32_t res;
     __asm volatile ("mov %0,lr" : "=r" (res));
     return res;
 }
 
+#if TRACE
+#define CAPTURE_LR() UNUSED auto __lr = __LR() & ~1;
 #else
-#define MYDBG(...)
-#define _MYDBG(...)
+#define CAPTURE_LR()
 #endif
 
-void* calloc(size_t size, size_t count)
+#if MALLOC_DIAG
+#define MYDIAG(flag, ...)	if ((MALLOC_DIAG) & (flag)) { MYDBG(__VA_ARGS__); }
+#else
+#define MYDIAG(...)
+#endif
+
+static void* _malloc_impl(size_t size, bool clear);
+
+OPTIMIZE void* calloc(size_t size, size_t count)
 {
-    size *= count;
-    void* ptr = malloc(size);
-    if (ptr)
-        memset(ptr, 0, size);
-    return ptr;
+    return _malloc_impl(size * count, true);
 }
 
 struct free_list
@@ -55,36 +62,24 @@ void* __heap_top = &__heap_start;
 void* __heap_limit = &__heap_end;
 size_t __free_fragments;
 
-#ifdef CORTEX_TRACK_STACK_USAGE
-size_t stack_max_used()
-{
-    size_t* p = (size_t*)&__stack_start;
-    size_t* e = (size_t*)&__stack_end;
-
-    while (p < e && *p == STACK_MAGIC)
-        p++;
-
-    return (e - p) * sizeof(size_t);
-}
-#endif
-
-void* _malloc_r(_reent* _, size_t size) { return malloc(size); }
+void* _malloc_r(_reent* _, size_t size) { return _malloc_impl(size, false); }
 void _free_r(_reent* _, void* ptr) { free(ptr); }
 
-#ifdef MALLOC_DEBUG
+#if (MALLOC_DIAG) & DIAG_FREECHAIN
 void dump_free_chain()
 {
-    MYDBG("freeblock chain, %d bytes total:", __free_fragments);
+    DBGC("malloc", "FREECHAIN(%4d):", __free_fragments);
     for (free_list* p = __free; p; p = p->next)
-        _MYDBG("  %d @ %p-%p", p->size, p, (size_t)p + p->size);
-    _MYDBG("  top @ %p + %d unused = %p\n", __heap_top, (size_t)__heap_limit - (size_t)__heap_top, __heap_limit);
+        _DBG(" %p+%d=%p", p, p->size, (size_t)p + p->size);
+    _DBG(" (%p+%d=%p)\n", __heap_top, (size_t)__heap_limit - (size_t)__heap_top, __heap_limit);
 }
 #else
 #define dump_free_chain()
 #endif
 
-#define SMALLEST_BLOCK	8
-#define REQUIRED_BLOCK(n)	(((n) + SMALLEST_BLOCK - 1) & ~3)
+#define SMALLEST_BLOCK	(sizeof(intptr_t) * 2)
+#define BLOCK_ALIGNMENT 16
+#define REQUIRED_BLOCK(n)	(((n) + sizeof(size_t) + BLOCK_ALIGNMENT - 1) & ~(BLOCK_ALIGNMENT - 1))
 #define MEM_SIZE(ptr)	(((size_t*)(ptr))[-1])
 #define BLOCK_ADDR(ptr)	((size_t*)(ptr) - 1)
 
@@ -92,15 +87,16 @@ void* mtrim(void* ptr, size_t size)
 {
     if (size)
     {
+        CAPTURE_LR();
         size = REQUIRED_BLOCK(size);
         size_t cur = MEM_SIZE(ptr);
         if (cur > size + SMALLEST_BLOCK)
         {
             // there is space to be trimmed - we divide the allocated block in two and free the second part
-            MYDBG("trimming %d bytes off %d byte block @ %p\n", cur - size, cur, BLOCK_ADDR(ptr));
             MEM_SIZE(ptr) = size;	// new size of the first block
             void* p2 = (uint8_t*)ptr + size;
             MEM_SIZE(p2) = cur - size; 	// remainder to be freed
+            MYDIAG(DIAG_ALLOC, "-[%p] %p-%d=%d +%p=%d", __lr, BLOCK_ADDR(ptr), cur - size, size, BLOCK_ADDR(p2), cur - size);
             free(p2);
         }
     }
@@ -117,20 +113,23 @@ void* realloc(void* ptr, size_t size)
     // TODO: expand in case there is enough free space after the current block
 
     // fallback: allocate a whole new block
-    void* pNew = malloc(size);
+    void* pNew = _malloc_impl(size, false);
     memcpy(pNew, ptr, curSize);
     free(ptr);
     return pNew;
 }
 
-void* malloc(size_t size)
+OPTIMIZE void* malloc(size_t size)
+{
+    return _malloc_impl(size, false);
+}
+
+void* _malloc_impl(size_t size, bool clear)
 {
     if (!size)
         return NULL;
 
-#ifdef MALLOC_DEBUG
-    auto lr = __LR();
-#endif
+    CAPTURE_LR();
     size = REQUIRED_BLOCK(size);
     free_list** pp = &__free;
     void* res = NULL;
@@ -142,7 +141,7 @@ void* malloc(size_t size)
             // a free block matches our requirement perfectly
             *pp = p->next;
             res = p;
-            MYDBG("exact free block match @ %p\n", p);
+            MYDIAG(DIAG_ALLOC, "+[%p] %p=%d", __lr, p, size);
             break;
         }
 
@@ -153,7 +152,7 @@ void* malloc(size_t size)
             *pp = (free_list*)((uint8_t*)p + size);
             (*pp)->next = p->next;
             (*pp)->size = p->size - size;
-            MYDBG("partial free block match @ %p\n", p);
+            MYDIAG(DIAG_ALLOC, "+[%p] %p<%d +%p=%d", __lr, p, size, *pp, (*pp)->size);
             break;
         }
     }
@@ -164,12 +163,12 @@ void* malloc(size_t size)
         void* brkptr = (uint8_t*)__heap_top + size;
         if (brkptr > __heap_limit)
         {
-            DBGC("malloc", "failed, not enough memory left\n");
+            MYDBG("failed, not enough memory left");
             return NULL;
         }
         else
         {
-            MYDBG("heap size increased by %d bytes\n", size);
+            MYDIAG(DIAG_HEAP, "HEAP: %p+%d=%p", (uint8_t*)__heap_top - size, size, __heap_top);
         }
 
         res = __heap_top;
@@ -180,29 +179,35 @@ void* malloc(size_t size)
         __free_fragments -= size;
     }
 
-    MYDBG("allocated %d bytes @ %p - %p from %p\n", size, res, (uint8_t*)res + size, lr);
-
     dump_free_chain();
 
     // res is actually start of block, first word is size, the rest is to be returned
     *(size_t*)res = size;
+    if (clear)
+    {
+        for (size_t i = sizeof(size_t); i < size; i += sizeof(size_t))
+        {
+            *(size_t*)((intptr_t)res + i) = 0;
+        }
+    }
     return (size_t*)res + 1;
 }
 
+int __dbglines;
+
 void* malloc_once(size_t size)
 {
+    CAPTURE_LR();
     void* ptr = (uint8_t*)__heap_limit - size;
     if (ptr < __heap_top)
     {
-        DBGC("malloc_once", "failed, not enough memory left (%p - %u = %p < %p)\n", __heap_limit, size, ptr, __heap_top);
+        DBGCL("malloc_once", "[%p] %p-%u=%p<%p", __lr, __heap_limit, size, ptr, __heap_top);
         return NULL;
     }
-    __heap_limit = ptr;
-#ifdef CORTEX_TRACK_STACK_USAGE
-    MYDBG("allocated %d bytes @ %p - %p at the top of the heap, max stack used so far: %d\n", size, ptr, (uint8_t*)ptr + size, stack_max_used());
-#else
-    MYDBG("allocated %d bytes @ %p - %p at the top of the heap\n", size, ptr, (uint8_t*)ptr + size);
+#if (MALLOC_DIAG) & DIAG_ALLOC
+    DBGCL("malloc_once", "[%p] %p-%u=%p (%d)", __lr, __heap_limit, size, ptr, continuous);
 #endif
+    __heap_limit = ptr;
     return ptr;
 }
 
@@ -211,13 +216,12 @@ void free(void* ptr)
     if (!ptr)
         return;
 
+    CAPTURE_LR();
     free_list** pp = &__free;
     ptr = (size_t*)ptr - 1;
     size_t size = *(size_t*)ptr;
     void* end = (uint8_t*)ptr + size;
     free_list* cur = (free_list*)ptr;
-
-    MYDBG("freeing %d bytes @ %p - %p\n", size, ptr, end);
 
     for (free_list* p = *pp; p && p <= end; pp = &p->next, p = p->next)
     {
@@ -226,26 +230,26 @@ void free(void* ptr)
             // the block being freed is immediately before another free block
             cur->next = p->next;
             cur->size = p->size + size;
-            MYDBG("prepending to free block @ %p, resulting block is %d bytes @ %p - %p\n", p, cur->size, ptr, (uint8_t*)p + cur->size);
+            MYDIAG(DIAG_ALLOC, "-[%p] %p+%p=%d", __lr, cur, p, cur->size);
             goto done;
         }
 
         if ((uint8_t*)p + p->size == ptr)
         {
             // the block being freed is immediately after another free block
-            cur = p;
             if (p->next == end)
             {
                 // ...and is immediately followed by yet another free block
                 p->size += size + p->next->size;
-                MYDBG("joining free blocks @ %p and %p, resulting block is %d bytes @ %p - %p\n", p, p->next, p->size, p, (uint8_t*)p + p->size);
+                MYDIAG(DIAG_ALLOC, "-[%p] %p+%p+%p=%d", __lr, p, cur, p->next, p->size);
                 p->next = p->next->next;
             }
             else
             {
                 p->size += size;
-                MYDBG("appending to free block @ %p, resulting block is %d bytes @ %p - %p\n", p, p->size, p, (uint8_t*)p + p->size);
+                MYDIAG(DIAG_ALLOC, "-[%p] %p+%p=%d", __lr, p, cur, p->size);
             }
+            cur = p;
             goto done;
         }
     }
@@ -253,6 +257,7 @@ void free(void* ptr)
     // we've created a new free block
     cur->next = *pp;
     cur->size = size;
+    MYDIAG(DIAG_ALLOC, "-[%p] %p=%d", __lr, cur, size);
 
 done:
     __free_fragments += size;
@@ -260,7 +265,7 @@ done:
     {
         // let's shrink the heap
         ASSERT(!cur->next);
-        MYDBG("heap size decreased by %d bytes\n", cur->size);
+        MYDIAG(DIAG_HEAP, "HEAP: %p-%d=%p", __heap_top, cur->size, cur);
         __heap_top = cur;
         __free_fragments -= cur->size;
         *pp = NULL;
