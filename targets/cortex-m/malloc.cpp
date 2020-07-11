@@ -30,7 +30,7 @@ ALWAYS_INLINE static uint32_t __LR()
     return res;
 }
 
-#if TRACE
+#if TRACE || MINITRACE
 #define CAPTURE_LR() UNUSED auto __lr = __LR() & ~1;
 #else
 #define CAPTURE_LR()

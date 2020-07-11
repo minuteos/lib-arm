@@ -39,6 +39,8 @@ int Cortex_DebugWrite(unsigned channelAndSize, uint32_t data)
         case 1: port.u16 = data; break;
         case 2: port.u32 = data; break;
     }
+#ifdef PLATFORM_WATCHDOG_HIT
     PLATFORM_WATCHDOG_HIT();
+#endif
     return true;
 }
