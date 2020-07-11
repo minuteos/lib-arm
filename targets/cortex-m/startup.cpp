@@ -46,11 +46,11 @@ handler_t g_isrTableSys[ISR_COUNT];
 extern "C" __attribute__((naked)) void Default_Interrupt_Handler()
 {
     __asm volatile( \
-        "movw r0, #:lower16:g_isrTable\n"
-        "movt r0, #:upper16:g_isrTable\n"
+        "movw r0, #:lower16:%0\n"
+        "movt r0, #:upper16:%0\n"
         "mrs r1, ipsr\n"
         "add r0, r0, r1, lsl #3\n"
-        "ldmia r0, {r0, pc}\n");
+        "ldmia r0, {r0, pc}\n" : : "i" (g_isrTable));
 }
 
 #if TRACE
@@ -71,7 +71,7 @@ ALWAYS_INLINE void TRACE_REG_DUMP()
         "mrsne r0, psp\n"
         "push {r4-r11}\n"	// make the remaining registers available
         "mov r1, sp\n"
-        "bl Reg_Dump\n");
+        "bl %0\n" : : "i" (Reg_Dump));
 }
 #else
 #define TRACE_REG_DUMP()
@@ -87,7 +87,7 @@ extern "C" __attribute__((naked)) void Default_Missing_Handler(void* arg0)
 extern "C" __attribute__((naked)) void Default_HardFault_Handler()
 {
     TRACE_REG_DUMP();
-    DBG("HARD FAULT!\n");
+    DBGS("HARD FAULT!");
     DBG("HFSR: %08x\n", *(int*)0xE000ED2C);
     DBG("DFSR: %08x\n", *(int*)0xE000ED30);
     DBG("LFSR: %08x\n", *(int*)0xE000ED28);
@@ -155,9 +155,9 @@ extern "C" __attribute__((noreturn)) void Default_Reset_Handler()
 #endif
 
 #if BOOTLOADER
-    DBG("============= BOOTLOADER =============\n");
+    DBGS("============= BOOTLOADER =============\n");
 #else
-    DBG("=============== RESET ===============\n");
+    DBGS("=============== RESET ===============\n");
 #endif
 
 #ifdef CORTEX_STARTUP_BEFORE_C_INIT
