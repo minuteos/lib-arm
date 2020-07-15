@@ -168,7 +168,8 @@ void* _malloc_impl(size_t size, bool clear)
         }
         else
         {
-            MYDIAG(DIAG_HEAP, "HEAP: %p+%d=%p", (uint8_t*)__heap_top - size, size, __heap_top);
+            MYDIAG(DIAG_ALLOC, "+[%p] %p+%d=%p", __lr, __heap_top, size, brkptr);
+            MYDIAG(DIAG_HEAP, "HEAP: %p+%d=%p", __heap_top, size, brkptr);
         }
 
         res = __heap_top;
@@ -205,7 +206,7 @@ void* malloc_once(size_t size)
         return NULL;
     }
 #if (MALLOC_DIAG) & DIAG_ALLOC
-    DBGCL("malloc_once", "[%p] %p-%u=%p (%d)", __lr, __heap_limit, size, ptr, continuous);
+    DBGCL("malloc_once", "[%p] %p-%u=%p", __lr, __heap_limit, size, ptr);
 #endif
     __heap_limit = ptr;
     return ptr;
