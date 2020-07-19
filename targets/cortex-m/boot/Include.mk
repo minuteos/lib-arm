@@ -8,7 +8,7 @@
 # Generic bootloader support for Cortex-M series MCUs
 #
 
-ifneq (bootloader,$(NAME))
+ifndef BOOTLOADER_BUILD
 
 .PHONY: bootloader
 
@@ -36,7 +36,7 @@ $(BOOT_OUTPUT).bin: export DEFINES    := BOOTLOADER
 $(BOOT_OUTPUT).bin: export TARGET     := $(TARGET)
 $(BOOT_OUTPUT).bin: export TARGETS    := $(TARGETS)
 $(BOOT_OUTPUT).bin:
-	$(MAKE) -f $(BASE_DIR)Base.mk ORIGINAL_SOURCE_DIR=$(SOURCE_DIR) PROJECT_SOURCE_DIR=$(BOOT_DIR) CONFIG=$(BOOT_CONFIG) OUTDIR=$(BOOT_OUTDIR) OBJDIR=$(BOOT_OBJDIR) NAME=bootloader LD_SCRIPT=boot.ld main binary
+	$(MAKE) -f $(BASE_DIR)Base.mk BOOTLOADER_BUILD=1 ORIGINAL_SOURCE_DIR=$(SOURCE_DIR) PROJECT_SOURCE_DIR=$(BOOT_DIR) CONFIG=$(BOOT_CONFIG) OUTDIR=$(BOOT_OUTDIR) OBJDIR=$(BOOT_OBJDIR) NAME=bootloader LD_SCRIPT=boot.ld main binary
 
 else
 
