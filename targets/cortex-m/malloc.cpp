@@ -55,12 +55,13 @@ struct free_list
     size_t size;
 };
 
-
-static free_list* __free;
-
-void* __heap_top = &__heap_start;
-void* __heap_limit = &__heap_end;
-size_t __free_fragments;
+static struct
+{
+    free_list* free;
+    size_t fragments;
+    void* top = &__heap_start;
+    void* limit = &__heap_end;
+} __heap;
 
 void* _malloc_r(_reent* _, size_t size) { return _malloc_impl(size, false); }
 void _free_r(_reent* _, void* ptr) { free(ptr); }
@@ -68,10 +69,10 @@ void _free_r(_reent* _, void* ptr) { free(ptr); }
 #if (MALLOC_DIAG) & DIAG_FREECHAIN
 void dump_free_chain()
 {
-    DBGC("malloc", "FREECHAIN(%4d):", __free_fragments);
-    for (free_list* p = __free; p; p = p->next)
+    DBGC("malloc", "FREECHAIN(%4d):", __heap.fragments);
+    for (free_list* p = __heap.free; p; p = p->next)
         _DBG(" %p+%d=%p", p, p->size, (size_t)p + p->size);
-    _DBG(" (%p+%d=%p)\n", __heap_top, (size_t)__heap_limit - (size_t)__heap_top, __heap_limit);
+    _DBG(" (%p+%d=%p)\n", __heap.top, (size_t)__heap.limit - (size_t)__heap.top, __heap.limit);
 }
 #else
 #define dump_free_chain()
@@ -131,7 +132,7 @@ void* _malloc_impl(size_t size, bool clear)
 
     CAPTURE_LR();
     size = REQUIRED_BLOCK(size);
-    free_list** pp = &__free;
+    free_list** pp = &__heap.free;
     void* res = NULL;
 
     for (free_list* p = *pp; p; pp = &p->next, p = p->next)
@@ -160,24 +161,24 @@ void* _malloc_impl(size_t size, bool clear)
     if (!res)
     {
         // not enough space, let's grow the heap
-        void* brkptr = (uint8_t*)__heap_top + size;
-        if (brkptr > __heap_limit)
+        void* brkptr = (uint8_t*)__heap.top + size;
+        if (brkptr > __heap.limit)
         {
             MYDBG("failed, not enough memory left");
             return NULL;
         }
         else
         {
-            MYDIAG(DIAG_ALLOC, "+[%p] %p+%d=%p", __lr, __heap_top, size, brkptr);
-            MYDIAG(DIAG_HEAP, "HEAP: %p+%d=%p", __heap_top, size, brkptr);
+            MYDIAG(DIAG_ALLOC, "+[%p] %p+%d=%p", __lr, __heap.top, size, brkptr);
+            MYDIAG(DIAG_HEAP, "HEAP: %p+%d=%p", __heap.top, size, brkptr);
         }
 
-        res = __heap_top;
-        __heap_top = brkptr;
+        res = __heap.top;
+        __heap.top = brkptr;
     }
     else
     {
-        __free_fragments -= size;
+        __heap.fragments -= size;
     }
 
     dump_free_chain();
@@ -199,16 +200,16 @@ int __dbglines;
 void* malloc_once(size_t size)
 {
     CAPTURE_LR();
-    void* ptr = (uint8_t*)__heap_limit - size;
-    if (ptr < __heap_top)
+    void* ptr = (uint8_t*)__heap.limit - size;
+    if (ptr < __heap.top)
     {
-        DBGCL("malloc_once", "[%p] %p-%u=%p<%p", __lr, __heap_limit, size, ptr, __heap_top);
+        DBGCL("malloc_once", "[%p] %p-%u=%p<%p", __lr, __heap.limit, size, ptr, __heap.top);
         return NULL;
     }
 #if (MALLOC_DIAG) & DIAG_ALLOC
-    DBGCL("malloc_once", "[%p] %p-%u=%p", __lr, __heap_limit, size, ptr);
+    DBGCL("malloc_once", "[%p] %p-%u=%p", __lr, __heap.limit, size, ptr);
 #endif
-    __heap_limit = ptr;
+    __heap.limit = ptr;
     return ptr;
 }
 
@@ -218,7 +219,7 @@ void free(void* ptr)
         return;
 
     CAPTURE_LR();
-    free_list** pp = &__free;
+    free_list** pp = &__heap.free;
     ptr = (size_t*)ptr - 1;
     size_t size = *(size_t*)ptr;
     void* end = (uint8_t*)ptr + size;
@@ -261,14 +262,14 @@ void free(void* ptr)
     MYDIAG(DIAG_ALLOC, "-[%p] %p=%d", __lr, cur, size);
 
 done:
-    __free_fragments += size;
-    if ((uint8_t*)cur + cur->size == __heap_top)
+    __heap.fragments += size;
+    if ((uint8_t*)cur + cur->size == __heap.top)
     {
         // let's shrink the heap
         ASSERT(!cur->next);
-        MYDIAG(DIAG_HEAP, "HEAP: %p-%d=%p", __heap_top, cur->size, cur);
-        __heap_top = cur;
-        __free_fragments -= cur->size;
+        MYDIAG(DIAG_HEAP, "HEAP: %p-%d=%p", __heap.top, cur->size, cur);
+        __heap.top = cur;
+        __heap.fragments -= cur->size;
         *pp = NULL;
     }
     else
