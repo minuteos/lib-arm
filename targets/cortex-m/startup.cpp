@@ -87,7 +87,7 @@ extern "C" __attribute__((naked)) void Default_Missing_Handler(void* arg0)
 extern "C" __attribute__((naked)) void Default_HardFault_Handler()
 {
     TRACE_REG_DUMP();
-    DBGS("HARD FAULT!");
+    DBGS("HARD FAULT!\n");
     DBG("HFSR: %08x\n", *(int*)0xE000ED2C);
     DBG("DFSR: %08x\n", *(int*)0xE000ED30);
     DBG("LFSR: %08x\n", *(int*)0xE000ED28);
