@@ -8,6 +8,9 @@
 # Makefile modifications for Cortex-M targets
 #
 
+CORTEX_M_MAKEFILE := $(call curmake)
+CORTEX_M_DIR := $(dir $(CORTEX_M_MAKEFILE))
+
 # GCC Arm Embedded Toolchain is the recommended toolchain
 TOOLCHAIN_PREFIX = arm-none-eabi-
 
@@ -19,6 +22,9 @@ LD_SCRIPT ?= default.ld
 
 # try to keep the output binary as small as possible
 LINK_FLAGS += -T$(LD_SCRIPT) -nostartfiles -Wl,--gc-sections,-Map,$(OUTPUT).map -specs=nano.specs
+
+# fallbacks for missing LD sections
+LINK_DIRS += $(CORTEX_M_DIR)ld_fallbacks/
 
 TARGETS += cmsis
 

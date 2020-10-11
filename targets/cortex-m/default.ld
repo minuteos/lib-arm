@@ -22,7 +22,11 @@ STACK_RESERVED = 8K;
 /* Memory map with segments FLASH and RAM should be provided by a more specific target */
 INCLUDE memmap.ld
 
+/* Typically used for bootloader stored at the beginning of app flash */
 INCLUDE sections_pre.ld
+
+/* Typically used for additional bootloader running before the main application */
+INCLUDE sections_pre2.ld
 
 SECTIONS {
     __boot_end = .;
