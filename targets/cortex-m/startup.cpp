@@ -16,10 +16,10 @@
 #include <ld_symbols.h>
 
 // actual handlers
-extern "C" void Reset_Handler() __attribute__((naked, noreturn, weak, alias("Default_Reset_Handler")));
-extern "C" void Interrupt_Handler() __attribute__((naked, weak, alias("Default_Interrupt_Handler")));
-extern "C" void HardFault_Handler() __attribute__((naked, noreturn, weak, alias("Default_HardFault_Handler")));
-extern "C" void Missing_Handler(void*) __attribute__((naked, noreturn, weak, alias("Default_Missing_Handler")));
+extern "C" void Reset_Handler() __attribute__((naked, noreturn, nothrow, weak, alias("Default_Reset_Handler")));
+extern "C" void Interrupt_Handler() __attribute__((naked, nothrow, weak, alias("Default_Interrupt_Handler")));
+extern "C" void HardFault_Handler() __attribute__((naked, noreturn, nothrow, weak, alias("Default_HardFault_Handler")));
+extern "C" void Missing_Handler(void*) __attribute__((naked, noreturn, nothrow, weak, alias("Default_Missing_Handler")));
 
 // system ISRs + IRQs
 #define ISR_COUNT	(NVIC_USER_IRQ_OFFSET + EXT_IRQ_COUNT)

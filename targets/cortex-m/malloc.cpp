@@ -280,7 +280,7 @@ done:
     dump_free_chain();
 }
 
-void* operator new(size_t size) __attribute__((alias("malloc")));
-void* operator new[](size_t size) __attribute__((alias("malloc")));
-void operator delete(void* ptr) __attribute__((alias("free")));
-void operator delete[](void* ptr) __attribute__((alias("free")));
+void* operator new(size_t size) __attribute__((leaf, nothrow, alias("malloc")));
+void* operator new[](size_t size) __attribute__((leaf, nothrow, alias("malloc")));
+void operator delete(void* ptr) __attribute__((leaf, nothrow, alias("free")));
+void operator delete[](void* ptr) __attribute__((leaf, nothrow, alias("free")));
