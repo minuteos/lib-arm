@@ -108,7 +108,7 @@ void Cortex_SetIRQHandler(IRQn_Type IRQn, handler_t handler)
 // symbols provided by LD
 extern handler_t __init_array_start[];
 extern handler_t __init_array_end[];
-extern int main(void);
+extern int main(int argc, char** argv);
 
 extern "C" __attribute__((noreturn)) void Default_Reset_Handler()
 {
@@ -177,7 +177,11 @@ extern "C" __attribute__((noreturn)) void Default_Reset_Handler()
 
     // finally
     DBG("init: starting main()\n");
-    main();
+#ifdef CORTEX_STARTUP_MAIN
+    CORTEX_STARTUP_MAIN();
+#else
+    main(0, NULL);
+#endif
 
 #if BOOTLOADER
 #ifdef CORTEX_STARTUP_BEFORE_BOOT

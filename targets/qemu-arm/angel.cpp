@@ -18,6 +18,7 @@ enum struct SysCall
     Open = 0x01,
     WriteChar = 0x03,
     Clock = 0x10,
+    GetCmdLine = 0x15,
     Exit = 0x18,
 };
 
@@ -73,6 +74,49 @@ int puts(const char* s)
 int printf(const char* fmt, ...)
 {
     return va_call(vformat, fmt, angel_output, NULL, fmt);
+}
+
+extern int main(int argc, char** argv);
+
+void angel_main()
+{
+    char cmdline[1024];
+    int argc = 0;
+    char* argv[32];
+    struct { char* p; int len; } arg = { cmdline, sizeof(cmdline) };
+    angel(SysCall::GetCmdLine, &arg);
+
+    const char* s = cmdline;
+    char* d = cmdline;
+    bool a = false;
+
+    while (char c = *s++)
+    {
+        switch (c)
+        {
+            case ' ':
+                // end of argument
+                if (a) { a = false; *d++ = 0; }
+                break;
+            case '"':
+            case '\'':
+                if (!a) { a = true; argv[argc++] = d; }
+                while (char cc = *s++)
+                {
+                    if (c == cc) { break;}
+                    *d++ = cc;
+                }
+                break;
+            default:
+                if (!a) { a = true; argv[argc++] = d; }
+                *d++ = c;
+                break;
+        }
+    }
+
+    if (a) { *d++ = 0; }
+
+    main(argc, argv);
 }
 
 }
