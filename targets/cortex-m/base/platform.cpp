@@ -23,7 +23,7 @@ int Cortex_DebugWrite(unsigned channelAndSize, uint32_t data)
     if (!port.u32)
     {
         // wait for a while for the port to become available
-        unsigned wait = 255;
+        unsigned wait = 2550;
         do
         {
             if (!--wait)
