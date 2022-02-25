@@ -243,13 +243,13 @@ void free(void* ptr)
             {
                 // ...and is immediately followed by yet another free block
                 p->size += size + p->next->size;
-                MYDIAG(DIAG_ALLOC, "-[%p] %p+%p+%p=%d", __lr, p, cur, p->next, p->size);
+                MYDIAG(DIAG_ALLOC, "-[%p] %p+%p+%p=%d", __lr, cur, p, p->next, p->size);
                 p->next = p->next->next;
             }
             else
             {
                 p->size += size;
-                MYDIAG(DIAG_ALLOC, "-[%p] %p+%p=%d", __lr, p, cur, p->size);
+                MYDIAG(DIAG_ALLOC, "-[%p] %p+%p=%d", __lr, cur, p, p->size);
             }
             cur = p;
             goto done;
