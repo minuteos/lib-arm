@@ -38,6 +38,26 @@ END_EXTERN_C
 
 EXTERN_C int Cortex_DebugWrite(unsigned channelAndSize, uint32_t data);
 
+ALWAYS_INLINE uint32_t* Cortex_Handler_ReadSP()
+{
+    register uint32_t* res __asm("r0");
+    __asm volatile (
+        "tst lr, #4\n"
+        "ite eq\n"
+        "mrseq r0, msp\n"
+        "mrsne r0, psp\n" : : : "r0");
+    return res;
+}
+
+ALWAYS_INLINE uint32_t* Cortex_Handler_SaveR4_R11()
+{
+    register uint32_t* res __asm("r1");
+    __asm volatile (
+        "push {r4-r11}\n"
+        "mov r1, sp\n" : : : "r1");
+    return res;
+}
+
 #if !defined(PLATFORM_DBG_ACTIVE) && !defined(PLATFORM_DBG_CHAR)
 #define PLATFORM_DBG_ACTIVE(channel)        Cortex_DebugWrite((channel) | 0x60, 0)
 #define PLATFORM_DBG_CHAR(channel, char)    Cortex_DebugWrite((channel), (char))

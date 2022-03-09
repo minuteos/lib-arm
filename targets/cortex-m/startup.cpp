@@ -64,14 +64,7 @@ extern "C" void Reg_Dump(uint32_t* regs, uint32_t* regs2)
 
 ALWAYS_INLINE void TRACE_REG_DUMP()
 {
-    __asm volatile (
-        "tst lr, #4\n"
-        "ite eq\n"
-        "mrseq r0, msp\n"
-        "mrsne r0, psp\n"
-        "push {r4-r11}\n"	// make the remaining registers available
-        "mov r1, sp\n"
-        "bl %0\n" : : "i" (Reg_Dump));
+    Reg_Dump(Cortex_Handler_ReadSP(), Cortex_Handler_SaveR4_R11());
 }
 #else
 #define TRACE_REG_DUMP()
