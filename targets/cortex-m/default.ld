@@ -32,7 +32,7 @@ SECTIONS {
     __boot_end = .;
 
     /* Cortex-M image starts with an ISR table which also contains the initial SP */
-    .text.isr_vector : {
+    .text.isr_vector (READONLY) : {
         __app_start = .;
         KEEP(*(.isr_vector))
         . = ALIGN(4);
@@ -43,7 +43,7 @@ INCLUDE sections_post_isr.ld
 
 SECTIONS {
     /* code (.text), constants (.rodata), and linktime grouped declarations (.rospec) */
-    .text : {
+    .text (READONLY) : {
         *(.text)
         *(.text*)
         *(.rodata)
@@ -53,20 +53,20 @@ SECTIONS {
     } >FLASH
 
     /* libc initialization */
-    .text.init_array : {
+    .text.init_array (READONLY) : {
         PROVIDE_HIDDEN(__init_array_start = .);
         KEEP(*(SORT(.init_array.*)))
         KEEP(*(.init_array*))
         PROVIDE_HIDDEN(__init_array_end = .);
     } >FLASH
 
-    .text.ARM.extab :
+    .text.ARM.extab (READONLY) :
     {
         *(.ARM.extab* .gnu.linkonce.armextab.*)
     } >FLASH
 
     __exidx_start = .;
-    .text.ARM.exidx :
+    .text.ARM.exidx (READONLY) :
     {
         *(.ARM.exidx* .gnu.linkonce.armexidx.*)
     } >FLASH
@@ -136,7 +136,7 @@ SECTIONS {
     } >UIDS
 
     /* special section at end of image for checksum/signature/etc */
-    .sig : AT(__text_end + SIZEOF(.data)) {
+    .sig (READONLY) : AT(__text_end + SIZEOF(.data)) {
         KEEP(*(.sig))
         KEEP(*(.sig*))
     } >FLASH

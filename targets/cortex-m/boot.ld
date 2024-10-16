@@ -40,7 +40,7 @@ INCLUDE sections_boot_post_isr.ld
 
 SECTIONS {
     /* code (.text), constants (.rodata), and linktime grouped declarations (.rospec) */
-    .text : {
+    .text (READONLY) : {
         *(.text)
         *(.text*)
         *(.rodata)
@@ -50,7 +50,7 @@ SECTIONS {
     } >FLASH_BOOT
 
     /* libc initialization */
-    .init_array : {
+    .init_array (READONLY) : {
         PROVIDE_HIDDEN(__init_array_start = .);
         KEEP(*(SORT(.init_array.*)))
         KEEP(*(.init_array*))
