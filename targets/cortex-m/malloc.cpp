@@ -107,6 +107,11 @@ void* mtrim(void* ptr, size_t size)
 
 void* realloc(void* ptr, size_t size)
 {
+    if (!ptr)
+    {
+        return _malloc_impl(size, false);
+    }
+
     size_t curSize = MEM_SIZE(ptr);
     if (REQUIRED_BLOCK(size) <= curSize)
         return mtrim(ptr, size);
