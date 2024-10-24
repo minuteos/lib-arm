@@ -108,7 +108,7 @@ void* mtrim(void* ptr, size_t size)
 void* realloc(void* ptr, size_t size)
 {
     size_t curSize = MEM_SIZE(ptr);
-    if (size <= curSize)
+    if (REQUIRED_BLOCK(size) <= curSize)
         return mtrim(ptr, size);
 
     // TODO: expand in case there is enough free space after the current block
