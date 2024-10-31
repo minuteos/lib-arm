@@ -16,10 +16,17 @@ private:
     IRQn_Type num;
 
 public:
-    constexpr IRQ(IRQn_Type num)
+    constexpr IRQ(IRQn_Type num = (IRQn_Type)0)
         : num(num) {}
 
-    void Enable() const { NVIC_EnableIRQ(num); }
-    void Disable() const { NVIC_DisableIRQ(num); }
-    void Trigger() const { NVIC->STIR = num; }
+    ALWAYS_INLINE void Enable() const { NVIC_EnableIRQ(num); }
+    ALWAYS_INLINE void Disable() const { NVIC_DisableIRQ(num); }
+    ALWAYS_INLINE void Trigger() const { NVIC->STIR = num; }
+    ALWAYS_INLINE void SetHandler(Delegate<void> handler) const { Cortex_SetIRQHandler(num, handler); }
+    ALWAYS_INLINE void SetHandler(cortex_handler_t handler) const { Cortex_SetIRQHandler(num, handler); }
+    template<class T> ALWAYS_INLINE void SetHandler(T* target, void (T::*method)()) const
+        { SetHandler(Delegate(target, method)); }
+    template<class T> ALWAYS_INLINE void SetHandler(const T* target, void (T::*method)() const) const
+        { SetHandler(Delegate(target, method)); }
+    ALWAYS_INLINE void ResetHandler() const { Cortex_ResetIRQHandler(num); }
 };

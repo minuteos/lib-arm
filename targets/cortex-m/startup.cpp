@@ -98,6 +98,13 @@ void Cortex_SetIRQHandler(IRQn_Type IRQn, handler_t handler)
     g_isrTableSys[IRQn + NVIC_USER_IRQ_OFFSET] = handler;
 }
 
+void Cortex_ResetIRQHandler(IRQn_Type IRQn)
+{
+    NVIC_DisableIRQ(IRQn);
+    g_isrTableSys[IRQn + NVIC_USER_IRQ_OFFSET] = &Interrupt_Handler;
+    g_isrTable[IRQn + NVIC_USER_IRQ_OFFSET] = &Missing_Handler;
+}
+
 // symbols provided by LD
 extern handler_t __init_array_start[];
 extern handler_t __init_array_end[];
