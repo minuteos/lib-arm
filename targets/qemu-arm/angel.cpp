@@ -76,6 +76,11 @@ int printf(const char* fmt, ...)
     return va_call(vformat, fmt, angel_output, NULL, fmt);
 }
 
+int vprintf(const char* fmt, va_list va)
+{
+    return vformat(angel_output, NULL, fmt, va);
+}
+
 extern int main(int argc, char** argv);
 
 void angel_main()
