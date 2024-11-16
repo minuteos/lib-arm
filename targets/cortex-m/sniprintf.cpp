@@ -25,7 +25,7 @@ int vsniprintf(char* buf, size_t len, const char* format, va_list va)
     int res = vformat(format_output_mem, &fwi, format, va);
     if (buf && len)
     {
-        buf[len - 1] = 0;
+        buf[size_t(res) < len ? res : len - 1] = 0;
     }
     return res;
 }
