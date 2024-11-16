@@ -29,3 +29,6 @@ int vsniprintf(char* buf, size_t len, const char* format, va_list va)
     }
     return res;
 }
+
+int snprintf(char* buf, size_t len, const char* format, ...) __attribute__((alias("sniprintf")));
+int vsnprintf(char* buf, size_t len, const char* format, va_list va) __attribute__((alias("vsniprintf")));
