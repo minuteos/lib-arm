@@ -70,9 +70,12 @@ ALWAYS_INLINE uint32_t* Cortex_Handler_SaveR4_R11()
 #endif
 
 typedef void (*cortex_handler_t)(void);
+typedef void (*cortex_handler_arg_t)(void* arg);
 
 extern void Cortex_SetIRQHandler(IRQn_Type IRQn, cortex_handler_t handler);
+extern void Cortex_SetIRQHandlerWithArg(IRQn_Type IRQn, cortex_handler_arg_t handler, void* arg);
 extern void Cortex_ResetIRQHandler(IRQn_Type IRQn);
+extern void* Cortex_GetIRQHandlerArg(IRQn_Type IRQn);
 static inline void Cortex_SetIRQWakeup(IRQn_Type IRQn) { NVIC_SetPriority(IRQn, 0xFF); }
 
 #ifdef __cplusplus

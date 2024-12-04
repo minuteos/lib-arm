@@ -98,6 +98,16 @@ void Cortex_SetIRQHandler(IRQn_Type IRQn, handler_t handler)
     g_isrTableSys[IRQn + NVIC_USER_IRQ_OFFSET] = handler;
 }
 
+void Cortex_SetIRQHandlerWithArg(IRQn_Type IRQn, cortex_handler_arg_t handler, void* arg)
+{
+    g_isrTable[IRQn + NVIC_USER_IRQ_OFFSET] = GetDelegate(handler, arg);
+}
+
+OPTIMIZE void* Cortex_GetIRQHandlerArg(IRQn_Type IRQn)
+{
+    return g_isrTable[IRQn + NVIC_USER_IRQ_OFFSET].Target();
+}
+
 void Cortex_ResetIRQHandler(IRQn_Type IRQn)
 {
     NVIC_DisableIRQ(IRQn);

@@ -29,4 +29,5 @@ public:
     template<class T> ALWAYS_INLINE void SetHandler(const T* target, void (T::*method)() const) const
         { SetHandler(Delegate(target, method)); }
     ALWAYS_INLINE void ResetHandler() const { Cortex_ResetIRQHandler(num); }
+    ALWAYS_INLINE const void* HandlerArgument() const { return Cortex_GetIRQHandlerArg(num); }
 };
