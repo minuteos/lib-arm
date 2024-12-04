@@ -86,6 +86,8 @@ void dump_free_chain()
 
 void* mtrim(void* ptr, size_t size)
 {
+    PLATFORM_CRITICAL_SECTION();
+
     if (size)
     {
         CAPTURE_LR();
@@ -107,6 +109,8 @@ void* mtrim(void* ptr, size_t size)
 
 void* realloc(void* ptr, size_t size)
 {
+    PLATFORM_CRITICAL_SECTION();
+
     if (!ptr)
     {
         return _malloc_impl(size, false);
@@ -136,6 +140,9 @@ void* _malloc_impl(size_t size, bool clear)
         return NULL;
 
     CAPTURE_LR();
+
+    PLATFORM_CRITICAL_SECTION();
+
     size = REQUIRED_BLOCK(size);
     free_list** pp = &__heap.free;
     void* res = NULL;
@@ -205,6 +212,9 @@ int __dbglines;
 void* malloc_once(size_t size)
 {
     CAPTURE_LR();
+
+    PLATFORM_CRITICAL_SECTION();
+
     void* ptr = (uint8_t*)__heap.limit - size;
     if (ptr < __heap.top)
     {
@@ -224,6 +234,9 @@ void free(void* ptr)
         return;
 
     CAPTURE_LR();
+
+    PLATFORM_CRITICAL_SECTION();
+
     free_list** pp = &__heap.free;
     ptr = (size_t*)ptr - 1;
     size_t size = *(size_t*)ptr;

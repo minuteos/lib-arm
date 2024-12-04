@@ -132,7 +132,7 @@ extern "C" __attribute__((noreturn)) void Default_Reset_Handler()
 #endif
 
     SCB->EnableFPU();
-    __set_BASEPRI(0xFF);    // lowest priority IRQs only wake up the MCU, but don't execute handlers
+    __set_BASEPRI(CORTEX_DEFAULT_BASEPRI);    // lowest priority IRQs only wake up the MCU, but don't execute handlers
 
 #ifdef CORTEX_STARTUP_BEFORE_INIT
     CORTEX_STARTUP_BEFORE_INIT();
