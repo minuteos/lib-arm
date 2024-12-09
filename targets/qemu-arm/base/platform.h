@@ -25,4 +25,6 @@ void angel_main();
 
 END_EXTERN_C
 
+#define SystemCoreClock 32000000
+
 #include_next <base/platform.h>

@@ -69,6 +69,39 @@ ALWAYS_INLINE uint32_t* Cortex_Handler_SaveR4_R11()
 #define PLATFORM_DBG_WORD(channel, word)    Cortex_DebugWrite((channel) | 0x40, (word))
 #endif
 
+#ifndef PLATFORM_DBG_BRACKET
+#define PLATFORM_DBG_BRACKET()              (__get_IPSR() ? '{' : (__get_CONTROL() & 2) ? '(' : '[')
+#endif
+
+#ifndef PLATFORM_CRITICAL_SECTION
+#define PLATFORM_CRITICAL_SECTION()     ::__Cortex_Critical __critical ## __LINE__
+#endif
+
+#define CORTEX_DEFAULT_BASEPRI   ((~0 << (8 - __NVIC_PRIO_BITS) & 0xFF))
+#define CORTEX_NOSWITCH_BASEPRI  ((~1 << (8 - __NVIC_PRIO_BITS) & 0xFF))
+
+#ifdef __cplusplus
+struct __Cortex_Critical
+{
+    ALWAYS_INLINE __Cortex_Critical()
+    {
+        bp = __get_BASEPRI();
+        if (bp > CORTEX_NOSWITCH_BASEPRI)
+        {
+            __set_BASEPRI(CORTEX_NOSWITCH_BASEPRI);
+        }
+    }
+
+    ALWAYS_INLINE ~__Cortex_Critical()
+    {
+        __set_BASEPRI(bp);
+    }
+
+private:
+    uint8_t bp;
+};
+#endif
+
 typedef void (*cortex_handler_t)(void);
 typedef void (*cortex_handler_arg_t)(void* arg);
 
