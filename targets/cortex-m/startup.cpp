@@ -18,7 +18,7 @@
 // actual handlers
 extern "C" void Reset_Handler() __attribute__((naked, noreturn, nothrow, weak, alias("Default_Reset_Handler")));
 extern "C" void Interrupt_Handler() __attribute__((naked, nothrow, weak, alias("Default_Interrupt_Handler")));
-extern "C" void HardFault_Handler() __attribute__((naked, noreturn, nothrow, weak, alias("Default_HardFault_Handler")));
+extern "C" void Fault_Handler() __attribute__((naked, noreturn, nothrow, weak, alias("Default_Fault_Handler")));
 extern "C" void Missing_Handler(void*) __attribute__((naked, noreturn, nothrow, weak, alias("Default_Missing_Handler")));
 
 // system ISRs + IRQs
@@ -77,10 +77,12 @@ extern "C" __attribute__((naked)) void Default_Missing_Handler(void* arg0)
     CORTEX_HALT(1);
 }
 
-extern "C" __attribute__((naked)) void Default_HardFault_Handler()
+static const auto s_faultType = STRINGS("HARD", "MEM", "BUS", "USAGE");
+
+extern "C" __attribute__((naked)) void Default_Fault_Handler()
 {
     TRACE_REG_DUMP();
-    DBGS("HARD FAULT!\n");
+    DBG("%s FAULT!\n", s_faultType[SCB->ActiveIRQn() - HardFault_IRQn]);
     DBG("HFSR: %08x\n", *(int*)0xE000ED2C);
     DBG("DFSR: %08x\n", *(int*)0xE000ED30);
     DBG("LFSR: %08x\n", *(int*)0xE000ED28);
@@ -132,6 +134,7 @@ extern "C" __attribute__((noreturn)) void Default_Reset_Handler()
 #endif
 
     SCB->EnableFPU();
+    SCB->EnableFaults();
     __set_BASEPRI(CORTEX_DEFAULT_BASEPRI);    // lowest priority IRQs only wake up the MCU, but don't execute handlers
 
 #ifdef CORTEX_STARTUP_BEFORE_INIT
@@ -153,7 +156,10 @@ extern "C" __attribute__((noreturn)) void Default_Reset_Handler()
     }
 
 #if TRACE
-    Cortex_SetIRQHandler(HardFault_IRQn, &HardFault_Handler);
+    Cortex_SetIRQHandler(HardFault_IRQn, &Fault_Handler);
+    Cortex_SetIRQHandler(BusFault_IRQn, &Fault_Handler);
+    Cortex_SetIRQHandler(UsageFault_IRQn, &Fault_Handler);
+    Cortex_SetIRQHandler(MemoryManagement_IRQn, &Fault_Handler);
 #endif
 
     // activate the ISR table prepared in RAM

@@ -35,6 +35,8 @@ public:
     }
 #endif
 
+    void EnableFaults() { SHCSR |= SCB_SHCSR_BUSFAULTENA_Msk | SCB_SHCSR_USGFAULTENA_Msk | SCB_SHCSR_MEMFAULTENA_Msk; }
+
     void Sleep() { DisableDeepSleep(); WaitForInterrupt(); }
     void DeepSleep() { EnableDeepSleep(); WaitForInterrupt(); }
     void DisableDeepSleep() { SCR &= ~SCB_SCR_SLEEPDEEP_Msk; }
