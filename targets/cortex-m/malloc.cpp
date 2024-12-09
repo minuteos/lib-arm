@@ -13,7 +13,7 @@
 
 #include <base/base.h>
 
-#include <ld_symbols.h>
+#include <malloc_internal.h>
 
 #define DIAG_ALLOC      1
 #define DIAG_HEAP       2
@@ -49,19 +49,9 @@ OPTIMIZE void* calloc(size_t size, size_t count)
     return _malloc_impl(size * count, true);
 }
 
-struct free_list
-{
-    struct free_list* next;
-    size_t size;
-};
+typedef __malloc_free_list free_list;
 
-static struct
-{
-    free_list* free;
-    size_t fragments;
-    void* top = &__heap_start;
-    void* limit = &__heap_end;
-} __heap;
+__malloc_heap __heap;
 
 void* _malloc_r(_reent* _, size_t size) { return _malloc_impl(size, false); }
 void _free_r(_reent* _, void* ptr) { free(ptr); }
