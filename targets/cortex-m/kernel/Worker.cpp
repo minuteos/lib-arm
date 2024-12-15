@@ -158,6 +158,12 @@ async_once(Worker::Run)
     stack = new uint32_t[stackWords];
 
     stack[0] = STACK_MAGIC;
+#if TRACE
+    for (size_t i = 1; i < stackWords; i++)
+    {
+        stack[i] = STACK_MAGIC;
+    }
+#endif
     sp = stack + stackWords - ISRStack;
     memset(sp - BelowStack, 0, (BelowStack + ISRStack) * sizeof(uint32_t));
 
