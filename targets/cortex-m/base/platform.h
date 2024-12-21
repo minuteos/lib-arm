@@ -74,33 +74,19 @@ ALWAYS_INLINE uint32_t* Cortex_Handler_SaveR4_R11()
 #endif
 
 #ifndef PLATFORM_CRITICAL_SECTION
-#define PLATFORM_CRITICAL_SECTION()     ::__Cortex_Critical __critical ## __LINE__
+#define PLATFORM_CRITICAL_SECTION()     ::Cortex_CriticalContext __critical ## __LINE__
 #endif
 
-#define CORTEX_DEFAULT_BASEPRI   ((~0 << (8 - __NVIC_PRIO_BITS) & 0xFF))
-#define CORTEX_NOSWITCH_BASEPRI  ((~1 << (8 - __NVIC_PRIO_BITS) & 0xFF))
+#define CORTEX_GET_BASEPRI(pri)   ((uint8_t)(((pri) << (8 - __NVIC_PRIO_BITS)) & 0xFF))
 
-#ifdef __cplusplus
-struct __Cortex_Critical
-{
-    ALWAYS_INLINE __Cortex_Critical()
-    {
-        bp = __get_BASEPRI();
-        if (bp > CORTEX_NOSWITCH_BASEPRI)
-        {
-            __set_BASEPRI(CORTEX_NOSWITCH_BASEPRI);
-        }
-    }
-
-    ALWAYS_INLINE ~__Cortex_Critical()
-    {
-        __set_BASEPRI(bp);
-    }
-
-private:
-    uint8_t bp;
-};
-#endif
+//! priority level in which the default code is running (interrupts on this level are masked)
+#define CORTEX_DEFAULT_PRIO     0xFF
+//! priority level on which worker switching takes place (masking this prevents race condition between workers and main code)
+#define CORTEX_WORKER_PRIO      0xFE
+//! priority level used while detecting changes before going to sleep (so that changes caused by interrupts are properly detected)
+#define CORTEX_PRESLEEP_PRIO    1
+//! maximum priority, interrupts are never masked under normal circumstances (used by hardware handlers and similar)
+#define CORTEX_MAXIMUM_PRIO     0
 
 typedef void (*cortex_handler_t)(void);
 typedef void (*cortex_handler_arg_t)(void* arg);
@@ -109,9 +95,44 @@ extern void Cortex_SetIRQHandler(IRQn_Type IRQn, cortex_handler_t handler);
 extern void Cortex_SetIRQHandlerWithArg(IRQn_Type IRQn, cortex_handler_arg_t handler, void* arg);
 extern void Cortex_ResetIRQHandler(IRQn_Type IRQn);
 extern void* Cortex_GetIRQHandlerArg(IRQn_Type IRQn);
-static inline void Cortex_SetIRQWakeup(IRQn_Type IRQn) { NVIC_SetPriority(IRQn, 0xFF); }
+
+//! Configures the specified interrupt to run at the lowest priority level that is never serviced (used only for waking up the core)
+static ALWAYS_INLINE void Cortex_SetIRQWakeup(IRQn_Type IRQn) { NVIC_SetPriority(IRQn, CORTEX_DEFAULT_PRIO); }
+
+//! Unconditionally sets the current priority level to the specified value
+static ALWAYS_INLINE void Cortex_SetPriorityLevel(uint8_t pri) { __set_BASEPRI(CORTEX_GET_BASEPRI(pri)); }
+
+//! Sets the current priority level to at least the specified value
+//! @returns priority level to be restored using Cortex_RestorePriority
+static ALWAYS_INLINE uint8_t Cortex_MaskPriority(uint8_t pri)
+{
+    uint8_t bpri = CORTEX_GET_BASEPRI(pri);
+    uint8_t bp = __get_BASEPRI();
+    if (bp > bpri)
+    {
+        __set_BASEPRI(bpri);
+    }
+    return bp;
+}
+
+//! Restores the priority level changed by Cortex_MaskPriority
+static ALWAYS_INLINE void Cortex_RestorePriority(uint8_t bp) { __set_BASEPRI(bp); }
 
 #ifdef __cplusplus
+
+//! Sets the execution priority in the scope where a variable of this type is defined
+template <uint8_t pri> struct Cortex_PriorityContext
+{
+    ALWAYS_INLINE Cortex_PriorityContext() { bp = Cortex_MaskPriority(pri); }
+    ALWAYS_INLINE ~Cortex_PriorityContext() { Cortex_RestorePriority(bp); }
+
+private:
+    uint8_t bp;
+};
+
+using Cortex_CriticalContext = Cortex_PriorityContext<CORTEX_WORKER_PRIO>;
+
 #include <base/Delegate.h>
 extern void Cortex_SetIRQHandler(IRQn_Type IRQn, Delegate<void> handler);
+
 #endif
