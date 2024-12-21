@@ -10,14 +10,12 @@
 
 #include_next <kernel/platform.h>
 
-// use standard CMSIS macros for CPSID/CPSIE
-
 #ifndef PLATFORM_DISABLE_INTERRUPTS
-#define PLATFORM_DISABLE_INTERRUPTS __disable_irq
+#define PLATFORM_DISABLE_INTERRUPTS() Cortex_SetPriorityLevel(CORTEX_PRESLEEP_PRIO)
 #endif
 
 #ifndef PLATFORM_ENABLE_INTERRUPTS
-#define PLATFORM_ENABLE_INTERRUPTS __enable_irq
+#define PLATFORM_ENABLE_INTERRUPTS() Cortex_SetPriorityLevel(CORTEX_DEFAULT_PRIO)
 #endif
 
 #ifndef PLATFORM_CYCLE_COUNT
