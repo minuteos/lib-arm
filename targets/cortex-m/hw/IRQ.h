@@ -17,11 +17,14 @@ private:
 
 public:
     constexpr IRQ(IRQn_Type num = (IRQn_Type)0)
-        : num(num) {}
+        : num(num) { ASSERT(num >= 0); }
 
-    ALWAYS_INLINE void Enable() const { NVIC_EnableIRQ(num); }
-    ALWAYS_INLINE void Disable() const { NVIC_DisableIRQ(num); }
+    ALWAYS_INLINE bool IsEnabled() const { if (num < 0) __builtin_unreachable(); return NVIC_GetEnableIRQ(num); }
+    ALWAYS_INLINE void Enable() const { if (num < 0) __builtin_unreachable(); NVIC_EnableIRQ(num); }
+    ALWAYS_INLINE void Disable() const { if (num < 0) __builtin_unreachable(); NVIC_DisableIRQ(num); }
     ALWAYS_INLINE void Trigger() const { NVIC->STIR = num; }
+    ALWAYS_INLINE void Priority(unsigned prio) const { if (num < 0) __builtin_unreachable(); NVIC_SetPriority(num, prio); }
+    ALWAYS_INLINE unsigned Priority() const { if (num < 0) __builtin_unreachable(); return NVIC_GetPriority(num); }
     ALWAYS_INLINE void SetHandler(Delegate<void> handler) const { Cortex_SetIRQHandler(num, handler); }
     ALWAYS_INLINE void SetHandler(cortex_handler_t handler) const { Cortex_SetIRQHandler(num, handler); }
     template<class T> ALWAYS_INLINE void SetHandler(T* target, void (T::*method)()) const
