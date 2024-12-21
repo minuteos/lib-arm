@@ -23,6 +23,9 @@ LD_SCRIPT ?= default.ld
 # try to keep the output binary as small as possible
 LINK_FLAGS += -T$(LD_SCRIPT) -nostartfiles -Wl,--gc-sections,-Map,$(OUTPUT).map -specs=nano.specs
 
+# generate linker dependency file
+LINK_DEP_OPT = -Wl,--dependency-file=$(PRIMARY_DEPS)
+
 # fallbacks for missing LD sections
 LINK_DIRS += $(CORTEX_M_DIR)ld_fallbacks/
 
