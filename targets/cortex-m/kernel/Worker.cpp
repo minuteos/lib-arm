@@ -71,7 +71,7 @@ static void StopWorker(intptr_t asyncVal, AsyncResult asyncRes)
     __builtin_unreachable();
 };
 
-static void StartWorker()
+OPTIMIZE static void StartWorker(bool noPreempt)
 {
 #if TRACE && WORKER_TRACE_ENTRY_EXIT
     ITM->PORT[0].u8 = '<';
@@ -80,7 +80,10 @@ static void StartWorker()
     // change the SVCall handler to StopWorker
     g_isrTableSys[SVCall_IRQn + NVIC_USER_IRQ_OFFSET] = (handler_t)StopWorker;
 
-    SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_TICKINT_Msk | SysTick_CTRL_ENABLE_Msk;
+    if (!noPreempt)
+    {
+        SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_TICKINT_Msk | SysTick_CTRL_ENABLE_Msk;
+    }
 
     __asm volatile (
         // restore registers not handled by handler return from below PSP
@@ -98,20 +101,20 @@ static void StartWorker()
     __builtin_unreachable();
 }
 
-async(CortexWorker::RunWorker)
+OPTIMIZE async(CortexWorker::RunWorker)
 {
     // change the SVCall handler to StartWorker
-    g_isrTableSys[SVCall_IRQn + NVIC_USER_IRQ_OFFSET] = StartWorker;
+    g_isrTableSys[SVCall_IRQn + NVIC_USER_IRQ_OFFSET] = handler_t(&StartWorker);
 
     // load PSP
     __set_PSP(uint32_t(sp));
 
-    register intptr_t r0 asm ("r0");
+    register intptr_t r0 asm ("r0") = noPreempt;
     register AsyncResult r1 asm ("r1");
     __asm volatile (
         // switch to PSP, we get back after yield or interrupt
         "svc #0\n"
-        : "=r" (r0), "=r" (r1) : [sp] "r" (sp) : "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11"
+        : "=r" (r0), "=r" (r1) : "r" (r0) : "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "cc", "memory"
     );
     auto res = _ASYNC_RES(r0, r1);
 
@@ -180,7 +183,7 @@ async_once(Worker::Run)
     Cortex_SetIRQHandler(SysTick_IRQn, InterruptWorker);
     // use lowest non-masked priority for SysTick
     // it will be masked in critical sections to prevent preemption
-    NVIC_SetPriority(SysTick_IRQn, ~1);
+    NVIC_SetPriority(SysTick_IRQn, CORTEX_WORKER_PRIO);
 
     return async_forward(Task::Switch, GetDelegate((CortexWorker*)this, &CortexWorker::RunWorker));
 }
