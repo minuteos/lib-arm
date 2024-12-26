@@ -15,12 +15,12 @@
 
 #define CORTEX_STARTUP_MAIN()    angel_main()
 
-#define MONO_US (angel_clock() * 10000)
+#define MONO_US (angel_clock() / 1000)
 
 BEGIN_EXTERN_C
 
 void angel_output(void* context, char ch);
-uint32_t angel_clock();
+uint64_t angel_clock();
 void angel_main();
 
 END_EXTERN_C
