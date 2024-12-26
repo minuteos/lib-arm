@@ -15,6 +15,9 @@ typedef enum IRQn
 /* -------------------  Processor Exceptions Numbers  ----------------------------- */
   NonMaskableInt_IRQn           = -14,     /*  2 Non Maskable Interrupt */
   HardFault_IRQn                = -13,     /*  3 HardFault Interrupt */
+  MemoryManagement_IRQn         = -12,     /*  4 Memory Management Interrupt */
+  BusFault_IRQn                 = -11,     /*  5 Bus Fault Interrupt */
+  UsageFault_IRQn               = -10,     /*  6 Usage Fault Interrupt */
   SVCall_IRQn                   =  -5,     /* 11 SV Call Interrupt */
   PendSV_IRQn                   =  -2,     /* 14 Pend SV Interrupt */
   SysTick_IRQn                  =  -1,     /* 15 System Tick Interrupt */
