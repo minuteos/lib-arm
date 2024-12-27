@@ -188,7 +188,7 @@ async_once(Worker::Run)
     // it will be masked in critical sections to prevent preemption
     NVIC_SetPriority(SysTick_IRQn, CORTEX_WORKER_PRIO);
 
-    return async_forward(Task::Switch, GetDelegate((CortexWorker*)this, &CortexWorker::RunWorker));
+    return async_forward(Task::Switch, GetDelegate((CortexWorker*)this, &CortexWorker::RunWorker), trySync);
 }
 
 bool Worker::CanAwait()
