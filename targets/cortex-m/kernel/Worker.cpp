@@ -26,6 +26,7 @@ __attribute__((naked, noreturn)) static void WorkerDone()
 
 typedef void (*handler_t)(void);
 extern "C" handler_t g_isrTableSys[];
+extern "C" void Missing_Handler();
 
 static void StopWorker(intptr_t asyncVal, AsyncResult asyncRes);
 
@@ -104,7 +105,7 @@ OPTIMIZE static void StartWorker(bool noPreempt)
 OPTIMIZE async(CortexWorker::RunWorker)
 {
     // change the SVCall handler to StartWorker
-    g_isrTableSys[SVCall_IRQn + NVIC_USER_IRQ_OFFSET] = handler_t(&StartWorker);
+    g_isrTableSys[SVCall_IRQn + NVIC_USER_IRQ_OFFSET] = (handler_t)StartWorker;
 
     // load PSP
     __set_PSP(uint32_t(sp));
@@ -117,6 +118,8 @@ OPTIMIZE async(CortexWorker::RunWorker)
         : "=r" (r0), "=r" (r1) : "r" (r0) : "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "cc", "memory"
     );
     auto res = _ASYNC_RES(r0, r1);
+
+    g_isrTableSys[SVCall_IRQn + NVIC_USER_IRQ_OFFSET] = (handler_t)Missing_Handler;
 
     // store PSP
     sp = (uint32_t*)__get_PSP();
@@ -186,6 +189,11 @@ async_once(Worker::Run)
     NVIC_SetPriority(SysTick_IRQn, CORTEX_WORKER_PRIO);
 
     return async_forward(Task::Switch, GetDelegate((CortexWorker*)this, &CortexWorker::RunWorker));
+}
+
+bool Worker::CanAwait()
+{
+    return g_isrTableSys[SVCall_IRQn + NVIC_USER_IRQ_OFFSET] == (handler_t)StopWorker;
 }
 
 }
