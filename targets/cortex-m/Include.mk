@@ -19,6 +19,7 @@ ARCH_FLAGS ?= -mthumb
 
 # overridable LD script
 LD_SCRIPT ?= default.ld
+DEFINES += LINKER_ORDERED_SECTION=\".text.ord\"
 
 # try to keep the output binary as small as possible
 LINK_FLAGS += -T$(LD_SCRIPT) -nostartfiles -Wl,--gc-sections,-Map,$(OUTPUT).map -specs=nano.specs
