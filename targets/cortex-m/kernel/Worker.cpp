@@ -141,6 +141,8 @@ static void StartWorker2(bool noPreempt)
 
     // change the SVCall handler to StopWorker
     g_isrTableSys[SVCall_IRQn + NVIC_USER_IRQ_OFFSET] = (handler_t)StopWorker;
+    __DSB();
+    __ISB();
 
     if (!noPreempt)
     {
@@ -152,6 +154,8 @@ OPTIMIZE async(CortexWorker::RunWorker)
 {
     // change the SVCall handler to StartWorker
     g_isrTableSys[SVCall_IRQn + NVIC_USER_IRQ_OFFSET] = (handler_t)StartWorker;
+    __DSB();
+    __ISB();
 
     // load PSP
     __set_PSP(uint32_t(sp));
