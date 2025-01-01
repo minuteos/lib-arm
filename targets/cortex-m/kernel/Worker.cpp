@@ -28,9 +28,31 @@ typedef void (*handler_t)(void);
 extern "C" handler_t g_isrTableSys[];
 extern "C" void Missing_Handler();
 
-static void StopWorker(intptr_t asyncVal, AsyncResult asyncRes);
-static void StopWorker2(intptr_t asyncVal, AsyncResult asyncRes);
+static void StopWorker();
+static void StopWorker2();
+static void StopWorker3(intptr_t asyncVal, AsyncResult asyncRes);
 static void StartWorker2(bool noPreempt);
+
+/*!
+ * Critical context switching code when stopping/yielding workers (SVC handler)
+ * we cannot trust the compiler not to mix up register/stack allocations
+ */
+__attribute__((naked))
+#ifdef LINKER_ORDERED_SECTION
+__attribute__((section(LINKER_ORDERED_SECTION ".wrk.stop.0")))
+#endif
+static void StopWorker()
+{
+    __asm volatile (
+        // load R0/R1 from PSP because a possible exception hadnler could have
+        // been executed right before entering this one, changing the actual registers
+        "mrs r2, psp\n"
+        "ldrd r0, r1, [r2]\n"
+        // continue in StopWorker2
+        "b %[StopWorker2]"
+        : : [StopWorker2] "g" (StopWorker2)
+    );
+}
 
 /*!
  * Critical context switching code when interrupting workers (SysTick handler)
@@ -46,50 +68,51 @@ static void InterruptWorker()
         // just call StopWorker with a yield result, i.e. SleepTicks(0)
         "movs r0, #0\n"
         "movs r1, %[SleepTicks]\n"
-        // handle the rest in StopWorker, just let it fall through if we can rely on linker ordering
+        "mrs r2, psp\n"
+        // continue in StopWorker2
+        // just let it fall through if we can rely on linker ordering
 #ifndef LINKER_ORDERED_SECTION
-        "b %[StopWorker]\n"
+        "b %[StopWorker2]\n"
 #endif
-        : : [SleepTicks] "i" (AsyncResult::SleepTicks), [StopWorker] "g" (StopWorker)
+        : : [SleepTicks] "i" (AsyncResult::SleepTicks), [StopWorker2] "g" (StopWorker2)
     );
 }
 
 /*!
- * Critical context switching code when stopping/yielding workers (SVC handler)
+ * Critical context switching code when stopping/yielding workers (shared by SysTick and SVC handler)
  * we cannot trust the compiler not to mix up register/stack allocations
+ * expects async_res_t in R0/R1 and PSP in R2
  */
 __attribute__((naked))
 #ifdef LINKER_ORDERED_SECTION
-__attribute__((section(LINKER_ORDERED_SECTION ".wrk.stop.1")))
+__attribute__((section(LINKER_ORDERED_SECTION ".wrk.stop.2")))
 #endif
-static void StopWorker(intptr_t asyncVal, AsyncResult asyncRes)
+static void StopWorker2()
 {
     __asm volatile (
         // we'll be returning to MSP
         "bic lr, #4\n"
         // overwrite the stack R0/R1 values with current ones (async_res_t)
-        "mrs r2, msp\n"
-        "strd r0, r1, [r2]\n"
+        "strd r0, r1, [sp]\n"
         // save registers not handled by handler entry below PSP
-        "mrs r2, psp\n"
         "stmdb r2!, {r4-r11}\n"
 #ifndef __SOFTFP__
         "vstmdb r2!, {s16-s31}\n"
 #endif
-        // end of critical part, handle the rest in StopWorker2
+        // end of critical part, handle the rest in StopWorker3
         // just let it fall through if we can rely on linker ordering
 #ifndef LINKER_ORDERED_SECTION
-        "b %[StopWorker2]"
+        "b %[StopWorker3]"
 #endif
-        : : [StopWorker2] "g" (StopWorker2)
+        : : [StopWorker3] "g" (StopWorker3)
     );
 }
 
 //! Rest of the handling when stopping a worker after register switching is complete
 #ifdef LINKER_ORDERED_SECTION
-__attribute__((section(LINKER_ORDERED_SECTION ".wrk.stop.2")))
+__attribute__((section(LINKER_ORDERED_SECTION ".wrk.stop.3")))
 #endif
-static void StopWorker2(intptr_t asyncVal, AsyncResult asyncRes)
+static void StopWorker3(intptr_t asyncVal, AsyncResult asyncRes)
 {
 #if TRACE && WORKER_TRACE_ENTRY_EXIT
     ITM->PORT[0].u8 = '>';
@@ -109,11 +132,13 @@ __attribute__((naked))
 #ifdef LINKER_ORDERED_SECTION
 __attribute__((section(LINKER_ORDERED_SECTION ".wrk.start.1")))
 #endif
-static void StartWorker(bool noPreempt)
+static void StartWorker()
 {
     __asm volatile (
         // we'll be returning to PSP
         "orr lr, #4\n"
+        // load R0 from PSP because previous handler could have corrupted it
+        "ldr r0, [sp]\n"
         // restore registers not handled by handler return from below PSP
         "mrs r2, psp\n"
         "ldmdb r2!, {r4-r11}\n"
@@ -153,12 +178,12 @@ static void StartWorker2(bool noPreempt)
 OPTIMIZE async(CortexWorker::RunWorker)
 {
     // change the SVCall handler to StartWorker
-    g_isrTableSys[SVCall_IRQn + NVIC_USER_IRQ_OFFSET] = (handler_t)StartWorker;
-    __DSB();
-    __ISB();
+    g_isrTableSys[SVCall_IRQn + NVIC_USER_IRQ_OFFSET] = StartWorker;
 
     // load PSP
     __set_PSP(uint32_t(sp));
+    __DSB();
+    __ISB();
 
     register intptr_t r0 asm ("r0") = noPreempt;
     register AsyncResult r1 asm ("r1");
