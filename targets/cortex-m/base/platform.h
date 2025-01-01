@@ -31,6 +31,9 @@ END_EXTERN_C
 
 #define CM_PERIPHERAL(type, base) ((type*)(base))
 
+#define CORTEX_PREINIT(order, function) \
+static __attribute__((used, section(".rospec.hwinit.fn." #order))) void (*UNIQUE(__preinit))() = function
+
 // various macros that can be overriden in target specific cortex_defs.h
 #ifndef CORTEX_HALT
 #define CORTEX_HALT(n)  for(;;)

@@ -118,6 +118,9 @@ void Cortex_ResetIRQHandler(IRQn_Type IRQn)
 }
 
 // symbols provided by LD
+__attribute__((used, section(".rospec.hwinit.fn"))) static handler_t __hwinit_start[] = {};
+__attribute__((used, section(".rospec.hwinit.fn1"))) static handler_t __hwinit_end[] = {};
+
 extern handler_t __init_array_start[];
 extern handler_t __init_array_end[];
 extern int main(int argc, char** argv);
@@ -139,6 +142,9 @@ extern "C" __attribute__((noreturn)) void Default_Reset_Handler()
     __set_BASEPRI(CORTEX_GET_BASEPRI(CORTEX_DEFAULT_PRIO));
 
 #ifdef CORTEX_STARTUP_BEFORE_INIT
+#ifndef CORTEX_STARTUP_BEFORE_INIT_REQUIRED
+#warning CORTEX_STATUP_BEFORE_INIT is deprecated and will be removed in the future, please use CORTEX_PREINIT functions instead or define CORTEX_STARTUP_BEFORE_INIT_REQUIRED
+#endif
     CORTEX_STARTUP_BEFORE_INIT();
 #endif
 
@@ -166,10 +172,16 @@ extern "C" __attribute__((noreturn)) void Default_Reset_Handler()
     // activate the ISR table prepared in RAM
     SCB->SetISRTable(g_isrTableSys);
 
-#ifdef CORTEX_STARTUP_HARDWARE_INIT
     // hardware init (clocks etc.) before static constructors
+#ifdef CORTEX_STARTUP_HARDWARE_INIT
+#warning CORTEX_STATUP_HARDWARE_INIT is deprecated and will be removed in the future, please use CORTEX_PREINIT functions instead
     CORTEX_STARTUP_HARDWARE_INIT();
 #endif
+
+    for (handler_t* initptr = __hwinit_start; initptr < __hwinit_end; initptr++)
+    {
+        (*initptr)();
+    }
 
 #if BOOTLOADER
     DBGS("============= BOOTLOADER =============\n");
@@ -178,6 +190,7 @@ extern "C" __attribute__((noreturn)) void Default_Reset_Handler()
 #endif
 
 #ifdef CORTEX_STARTUP_BEFORE_C_INIT
+#warning CORTEX_STATUP_BEFORE_C_INIT is deprecated and will be removed in the future, please use CORTEX_PREINIT functions instead
     CORTEX_STARTUP_BEFORE_C_INIT();
 #endif
 
