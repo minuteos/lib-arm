@@ -107,10 +107,51 @@ void* realloc(void* ptr, size_t size)
     }
 
     size_t curSize = MEM_SIZE(ptr);
-    if (REQUIRED_BLOCK(size) <= curSize)
+    size_t increment = REQUIRED_BLOCK(size) - curSize;
+    if (int(increment) <= -int(SMALLEST_BLOCK))
+    {
+        // trim the block
         return mtrim(ptr, size);
+    }
+    if (int(increment) <= 0)
+    {
+        // no change needed/possible
+        return ptr;
+    }
 
-    // TODO: expand in case there is enough free space after the current block
+    // try to find if there is a free block immediately following the current block
+    free_list* wantFree = (free_list*)((char*)BLOCK_ADDR(ptr) + curSize);
+    free_list** pp = &__heap.free;
+    for (free_list* p = *pp; p; pp = &p->next, p = p->next)
+    {
+        if (p < wantFree)
+        {
+            continue;
+        }
+        if (p > wantFree || p->size < increment)
+        {
+            // no free block where required, or too small
+            break;
+        }
+
+        if (p->size == increment)
+        {
+            // exact match
+            *pp = p->next;
+            MYDIAG(DIAG_ALLOC, "+[%p] %p+%p=%d", __lr, ptr, p, increment);
+        }
+        else
+        {
+            // slice from the free block
+            ASSERT(p->size >= increment + SMALLEST_BLOCK);
+            *pp = (free_list*)((uint8_t*)p + increment);
+            (*pp)->next = p->next;
+            (*pp)->size = p->size - increment;
+            MYDIAG(DIAG_ALLOC, "+[%p] %p+%p<%d +%p=%d", __lr, ptr, p, increment, *pp, (*pp)->size);
+        }
+        MEM_SIZE(ptr) += increment;
+        return ptr;
+    }
 
     // fallback: allocate a whole new block
     void* pNew = _malloc_impl(size, false);
