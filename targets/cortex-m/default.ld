@@ -38,7 +38,7 @@ SECTIONS {
     .text.isr_vector (READONLY) : {
         __app_start = .;
         KEEP(*(.isr_vector))
-        . = ALIGN(4);
+        . = ALIGN(16);
     } >FLASH
 }
 
