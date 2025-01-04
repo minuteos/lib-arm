@@ -51,7 +51,7 @@ OPTIMIZE void* calloc(size_t size, size_t count)
 
 typedef __malloc_free_list free_list;
 
-__malloc_heap __heap;
+INIT_PRIORITY(-10000) __malloc_heap __heap;  // initialize as early as possible
 
 void* _malloc_r(_reent* _, size_t size) { return _malloc_impl(size, false); }
 void _free_r(_reent* _, void* ptr) { free(ptr); }
