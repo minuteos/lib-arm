@@ -48,6 +48,7 @@ SECTIONS {
     /* code (.text), constants (.rodata), and linktime grouped declarations (.rospec) */
     .text (READONLY) : {
         *(.text)
+        *(.text.main .text.startup*)
         KEEP(*(SORT(.text.ord.*)))    /* Sometimes it can be useful to force ordering of code sections */
         *(.text*)
         *(.rodata)
