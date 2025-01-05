@@ -21,11 +21,11 @@ class CortexWorker
 {
 private:
     CortexWorker(const WorkerOptions& opts)
-        : stackSize(opts.stack), noPreempt(opts.noPreempt), trySync(opts.trySync) {}
+        : stackSize(opts.stack), sp((uint32_t*)opts.staticStack), noPreempt(opts.noPreempt), trySync(opts.trySync) {}
 
     union { size_t stackSize; uint32_t* stack; };
     uint32_t* sp;
-    bool noPreempt, trySync;
+    bool noPreempt, trySync, deleteStack;
 
     async(RunWorker);
 

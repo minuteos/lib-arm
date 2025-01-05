@@ -216,7 +216,10 @@ OPTIMIZE async(CortexWorker::RunWorker)
 
     if (_ASYNC_RES_TYPE(res) == AsyncResult::Complete)
     {
-        delete[] stack;
+        if (deleteStack)
+        {
+            delete[] stack;
+        }
         MemPoolFreeDynamic(this);
     }
     return res;
@@ -236,7 +239,16 @@ enum
 async_once(Worker::Run)
 {
     size_t stackWords = (stackSize + 3) / 4;
-    stack = new uint32_t[stackWords];
+    if (sp)
+    {
+        stack = sp;
+        deleteStack = false;
+    }
+    else
+    {
+        stack = new uint32_t[stackWords];
+        deleteStack = true;
+    }
 
     stack[0] = STACK_MAGIC;
 #if TRACE
