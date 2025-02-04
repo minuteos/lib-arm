@@ -18,6 +18,10 @@
 #define PLATFORM_ENABLE_INTERRUPTS() Cortex_SetPriorityLevel(CORTEX_DEFAULT_PRIO)
 #endif
 
+#ifndef PLATFORM_CLEAR_WAKEUP_EVENT
+#define PLATFORM_CLEAR_WAKEUP_EVENT() ({ __SEV(); __WFE(); })
+#endif
+
 #ifndef PLATFORM_CYCLE_COUNT
 #define PLATFORM_CYCLE_COUNT       (DWT->CYCCNT)
 #endif

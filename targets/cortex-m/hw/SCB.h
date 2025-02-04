@@ -36,9 +36,10 @@ public:
 #endif
 
     void EnableFaults() { SHCSR |= SCB_SHCSR_BUSFAULTENA_Msk | SCB_SHCSR_USGFAULTENA_Msk | SCB_SHCSR_MEMFAULTENA_Msk; }
+    void EnableSevOnPend() { SCR |= SCB_SCR_SEVONPEND_Msk; }
 
-    void Sleep() { DisableDeepSleep(); WaitForInterrupt(); }
-    void DeepSleep() { EnableDeepSleep(); WaitForInterrupt(); }
+    void Sleep() { DisableDeepSleep(); WaitForEvent(); }
+    void DeepSleep() { EnableDeepSleep(); WaitForEvent(); }
     void DisableDeepSleep() { SCR &= ~SCB_SCR_SLEEPDEEP_Msk; }
     void EnableDeepSleep() { SCR |= SCB_SCR_SLEEPDEEP_Msk; }
     void EnableWake(IRQn_Type irq) { NVIC->ISER[irq >> 5] = NVIC->ICPR[irq >> 5] = BIT(irq & 31); }
@@ -49,6 +50,7 @@ public:
     IRQn_Type PendingIRQn() { return IRQn_Type(((ICSR & SCB_ICSR_VECTPENDING_Msk) >> SCB_ICSR_VECTPENDING_Pos) - NVIC_USER_IRQ_OFFSET); }
     IRQn_Type ActiveIRQn() { return IRQn_Type(((ICSR & SCB_ICSR_VECTACTIVE_Msk) >> SCB_ICSR_VECTACTIVE_Pos) - NVIC_USER_IRQ_OFFSET); }
 
-    //! interrupts must be disabled, but we must lift BASEPRI limit to allow any interrupt to wake us from WFI
+    //! interrupts must be disabled, but we must lift BASEPRI limit to allow any interrupt to wake us from WFI (deprecated, now using WFE)
     ALWAYS_INLINE void WaitForInterrupt() { auto bp = __get_BASEPRI(); __set_BASEPRI(0); __WFI(); __set_BASEPRI(bp); }
+    ALWAYS_INLINE void WaitForEvent() { __WFE(); }
 };

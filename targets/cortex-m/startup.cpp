@@ -138,6 +138,7 @@ extern "C" __attribute__((noreturn)) void Default_Reset_Handler()
 
     SCB->EnableFPU();
     SCB->EnableFaults();
+    SCB->EnableSevOnPend();
     // lowest priority IRQs only wake up the MCU, but don't execute handlers
     __set_BASEPRI(CORTEX_GET_BASEPRI(CORTEX_DEFAULT_PRIO));
 
