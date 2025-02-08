@@ -214,7 +214,7 @@ OPTIMIZE async(CortexWorker::RunWorker)
     }
 #endif
 
-    if (_ASYNC_RES_TYPE(res) == AsyncResult::Complete)
+    if (_ASYNC_RES_TYPE(res) <= AsyncResult::Complete)
     {
         if (deleteStack)
         {
