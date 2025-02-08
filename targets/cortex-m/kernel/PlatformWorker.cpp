@@ -17,11 +17,8 @@ namespace kernel
 
 __attribute__((naked, noreturn)) static void WorkerDone()
 {
-    // return complete async_res, keep result in R0 so it is propagated
-    __asm volatile(
-        "movs r1, #0\n"
-        "svc #0\n"
-    );
+    // worker function has to return a complete async_res in R0/R1, just call the service handler
+    __asm volatile("svc #0");
 }
 
 typedef void (*handler_t)(void);
