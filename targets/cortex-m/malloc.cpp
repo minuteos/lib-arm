@@ -13,28 +13,19 @@
 
 #include <base/base.h>
 
+#include <base/alloc_trace.h>
+
 #include <malloc_internal.h>
 
 #define DIAG_ALLOC      1
 #define DIAG_HEAP       2
 #define DIAG_FREECHAIN  4
 
-//#define MALLOC_DIAG     DIAG_ALLOC
+//#define MALLOC_DIAG     DIAG_ALLOC | DIAG_HEAP
 
 #define MYDBG(...)      DBGCL("malloc", __VA_ARGS__)
 
-ALWAYS_INLINE static uint32_t __LR()
-{
-    uint32_t res;
-    __asm volatile ("mov %0,lr" : "=r" (res));
-    return res;
-}
-
-#if TRACE || MINITRACE
-#define CAPTURE_LR() UNUSED auto __lr = __LR() & ~1;
-#else
-#define CAPTURE_LR()
-#endif
+#define __lr    __builtin_return_address(0)
 
 #if MALLOC_DIAG
 #define MYDIAG(flag, ...)	if ((MALLOC_DIAG) & (flag)) { MYDBG(__VA_ARGS__); }
@@ -68,30 +59,33 @@ void dump_free_chain()
 #define dump_free_chain()
 #endif
 
-#define SMALLEST_BLOCK	(sizeof(intptr_t) * 2)
 #define BLOCK_ALIGNMENT 16
-#define REQUIRED_BLOCK(n)	(((n) + sizeof(size_t) + BLOCK_ALIGNMENT - 1) & ~(BLOCK_ALIGNMENT - 1))
-#define MEM_SIZE(ptr)	(((size_t*)(ptr))[-1])
-#define BLOCK_ADDR(ptr)	((size_t*)(ptr) - 1)
+#define HEADER_SIZE     (sizeof(size_t) + ALLOC_TRACE_OVERHEAD)
+#define REQUIRED_BLOCK(n)	(((n) + HEADER_SIZE + BLOCK_ALIGNMENT - 1) & ~(BLOCK_ALIGNMENT - 1))
+#define SMALLEST_BLOCK  REQUIRED_BLOCK(1)
+#define BLOCK_ADDR(ptr)	((char*)(ptr) - HEADER_SIZE)
+#define MEM_SIZE(ptr)   (*(size_t*)BLOCK_ADDR(ptr))
 
 void* mtrim(void* ptr, size_t size)
 {
+    if (!size)
+    {
+        return ptr;
+    }
+
     PLATFORM_CRITICAL_SECTION();
 
-    if (size)
+    size = REQUIRED_BLOCK(size);
+    size_t cur = MEM_SIZE(ptr);
+    if (cur >= size + SMALLEST_BLOCK)
     {
-        CAPTURE_LR();
-        size = REQUIRED_BLOCK(size);
-        size_t cur = MEM_SIZE(ptr);
-        if (cur > size + SMALLEST_BLOCK)
-        {
-            // there is space to be trimmed - we divide the allocated block in two and free the second part
-            MEM_SIZE(ptr) = size;	// new size of the first block
-            void* p2 = (uint8_t*)ptr + size;
-            MEM_SIZE(p2) = cur - size; 	// remainder to be freed
-            MYDIAG(DIAG_ALLOC, "-[%p] %p-%d=%d +%p=%d", __lr, BLOCK_ADDR(ptr), cur - size, size, BLOCK_ADDR(p2), cur - size);
-            free(p2);
-        }
+        // there is space to be trimmed - we divide the allocated block in two and free the second part
+        MEM_SIZE(ptr) = size;	// new size of the first block
+        void* p2 = (uint8_t*)ptr + size;
+        MEM_SIZE(p2) = cur - size; 	// remainder to be freed
+        MYDIAG(DIAG_ALLOC, "-[%p] %p-%d=%d +%p=%d", __lr, BLOCK_ADDR(ptr), cur - size, size, BLOCK_ADDR(p2), cur - size);
+        __trace_alloc(p2, cur - size);  // must do this to avoid free before alloc
+        free(p2);
     }
 
     return ptr;
@@ -107,20 +101,23 @@ void* realloc(void* ptr, size_t size)
     }
 
     size_t curSize = MEM_SIZE(ptr);
+    ASSERT(curSize <= __heap.Total());  // catch corrupted memory ASAP
     size_t increment = REQUIRED_BLOCK(size) - curSize;
     if (int(increment) <= -int(SMALLEST_BLOCK))
     {
         // trim the block
+        MYDIAG(DIAG_ALLOC, "~[%p] %p %d>%d", __lr, ptr, curSize, curSize + increment);
         return mtrim(ptr, size);
     }
     if (int(increment) <= 0)
     {
         // no change needed/possible
+        MYDIAG(DIAG_ALLOC, "~[%p] %p %d==%d", __lr, ptr, curSize, curSize + increment);
         return ptr;
     }
 
     // try to find if there is a free block immediately following the current block
-    free_list* wantFree = (free_list*)((char*)BLOCK_ADDR(ptr) + curSize);
+    free_list* wantFree = (free_list*)(BLOCK_ADDR(ptr) + curSize);
     free_list** pp = &__heap.free;
     for (free_list* p = *pp; p; pp = &p->next, p = p->next)
     {
@@ -155,7 +152,8 @@ void* realloc(void* ptr, size_t size)
 
     // fallback: allocate a whole new block
     void* pNew = _malloc_impl(size, false);
-    memcpy(pNew, ptr, curSize);
+    MYDIAG(DIAG_ALLOC, "~[%p] %p>%p %d>%d", __lr, ptr, pNew, curSize, MEM_SIZE(pNew));
+    memcpy(pNew, ptr, curSize - HEADER_SIZE);
     free(ptr);
     return pNew;
 }
@@ -169,8 +167,6 @@ void* _malloc_impl(size_t size, bool clear)
 {
     if (!size)
         return NULL;
-
-    CAPTURE_LR();
 
     PLATFORM_CRITICAL_SECTION();
 
@@ -235,15 +231,16 @@ void* _malloc_impl(size_t size, bool clear)
             *(size_t*)((intptr_t)res + i) = 0;
         }
     }
-    return (size_t*)res + 1;
+
+    res = (char*)res + sizeof(size_t) + ALLOC_TRACE_OVERHEAD;
+    __trace_alloc(res, size - ALLOC_TRACE_OVERHEAD);
+    return res;
 }
 
 int __dbglines;
 
 void* malloc_once(size_t size)
 {
-    CAPTURE_LR();
-
     PLATFORM_CRITICAL_SECTION();
 
     void* ptr = (uint8_t*)__heap.limit - size;
@@ -264,13 +261,14 @@ void free(void* ptr)
     if (!ptr)
         return;
 
-    CAPTURE_LR();
-
     PLATFORM_CRITICAL_SECTION();
 
+    __trace_free(ptr);
+
     free_list** pp = &__heap.free;
-    ptr = (size_t*)ptr - 1;
+    ptr = BLOCK_ADDR(ptr);
     size_t size = *(size_t*)ptr;
+    ASSERT(size <= __heap.Total());  // catch corrupted memory ASAP
     void* end = (uint8_t*)ptr + size;
     free_list* cur = (free_list*)ptr;
 
@@ -279,9 +277,9 @@ void free(void* ptr)
         if (p == end)
         {
             // the block being freed is immediately before another free block
+            MYDIAG(DIAG_ALLOC, "-[%p] %p+%p=%d+%d", __lr, cur, p, size, p->size);
             cur->next = p->next;
             cur->size = p->size + size;
-            MYDIAG(DIAG_ALLOC, "-[%p] %p+%p=%d", __lr, cur, p, cur->size);
             goto done;
         }
 
@@ -291,14 +289,14 @@ void free(void* ptr)
             if (p->next == end)
             {
                 // ...and is immediately followed by yet another free block
+                MYDIAG(DIAG_ALLOC, "-[%p] %p+%p+%p=%d+%d+%d", __lr, cur, p, p->next, size, p->size, p->next->size);
                 p->size += size + p->next->size;
-                MYDIAG(DIAG_ALLOC, "-[%p] %p+%p+%p=%d", __lr, cur, p, p->next, p->size);
                 p->next = p->next->next;
             }
             else
             {
+                MYDIAG(DIAG_ALLOC, "-[%p] %p+%p=%d+%d", __lr, cur, p, size, p->size);
                 p->size += size;
-                MYDIAG(DIAG_ALLOC, "-[%p] %p+%p=%d", __lr, cur, p, p->size);
             }
             cur = p;
             goto done;
@@ -306,9 +304,9 @@ void free(void* ptr)
     }
 
     // we've created a new free block
+    MYDIAG(DIAG_ALLOC, "-[%p] %p=%d", __lr, cur, size);
     cur->next = *pp;
     cur->size = size;
-    MYDIAG(DIAG_ALLOC, "-[%p] %p=%d", __lr, cur, size);
 
 done:
     __heap.fragments += size;
