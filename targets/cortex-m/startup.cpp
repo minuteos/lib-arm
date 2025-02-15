@@ -198,7 +198,9 @@ extern "C" __attribute__((noreturn)) void Default_Reset_Handler()
     // CRT init (static constructors, global initializers, etc...)
     for (handler_t* initptr = __init_array_start; initptr < __init_array_end; initptr++)
     {
+#if DEBUG
         DBG("init: %08X\n", *initptr);
+#endif
         (*initptr)();
     }
 
