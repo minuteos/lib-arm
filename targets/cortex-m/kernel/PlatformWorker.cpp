@@ -182,6 +182,13 @@ OPTIMIZE async(CortexWorker::RunWorker)
     __DSB();
     __ISB();
 
+#if CORTEX_WORKER_MPU_STACK_GUARD
+    // make sure the bottom of stack falls in a no access region
+    MPU->RBAR = ((uint32_t(stack) + 31) & ~31) | 0x10;
+    MPU->RASR = MPU_RASR_ENABLE_Msk | (4 << MPU_RASR_SIZE_Pos);
+    MPU->CTRL = MPU_CTRL_ENABLE_Msk | MPU_CTRL_PRIVDEFENA_Msk;
+#endif
+
     register intptr_t r0 asm ("r0") = noPreempt;
     register AsyncResult r1 asm ("r1");
     __asm volatile (
@@ -191,6 +198,9 @@ OPTIMIZE async(CortexWorker::RunWorker)
     );
     auto res = _ASYNC_RES(r0, r1);
 
+#if CORTEX_WORKER_MPU_STACK_GUARD
+    MPU->CTRL = 0;
+#endif
     g_isrTableSys[SVCall_IRQn + NVIC_USER_IRQ_OFFSET] = (handler_t)Missing_Handler;
 
     // store PSP
