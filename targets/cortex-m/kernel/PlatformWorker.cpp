@@ -271,6 +271,8 @@ async_once(Worker::Run)
     }
 #endif
     sp = stack + stackWords - ISRStack;
+    // stack must be aligned to 8 bytes
+    sp = (uint32_t*)((uintptr_t)sp & ~7);
     memset(sp - BelowStack, 0, (BelowStack + ISRStack) * sizeof(uint32_t));
 
     sp[7] = BIT(24);  // set THUMB in xPSR
