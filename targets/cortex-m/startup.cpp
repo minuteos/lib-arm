@@ -56,15 +56,37 @@ extern "C" __attribute__((naked)) void Default_Interrupt_Handler()
 #if TRACE
 extern "C" void Reg_Dump(uint32_t* regs, uint32_t* regs2)
 {
-    DBG("R0: %08x  R1: %08x  R2: %08x  R3: %08x\n", regs[0], regs[1], regs[2], regs[3]);
+    bool regsValid = (void*)regs >= &__ram_start && (void*)regs < &__ram_end;
+    if (!regsValid)
+    {
+        auto psp = (uint32_t*)__get_PSP();
+        DBG("SP invalid: %08x, using PSP: %08x\n", regs, psp);
+        regs = (uint32_t*)psp;
+        regsValid = (void*)regs >= &__ram_start && (void*)regs < &__ram_end;
+    }
+
+    if (regsValid)
+    {
+        DBG("R0: %08x  R1: %08x  R2: %08x  R3: %08x\n", regs[0], regs[1], regs[2], regs[3]);
+    }
     DBG("R4: %08x  R5: %08x  R6: %08x  R7: %08x\n", regs2[0], regs2[1], regs2[2], regs2[3]);
     DBG("R8: %08x  R9: %08x  R10:%08x  R11:%08x\n", regs2[4], regs2[5], regs2[6], regs2[7]);
-    DBG("R12:%08x  LR: %08x  PC: %08x  PSR:%08x\n", regs[4], regs[5], regs[6], regs[7]);
+    if (regsValid)
+    {
+        DBG("R12:%08x  LR: %08x  PC: %08x  PSR:%08x\n", regs[4], regs[5], regs[6], regs[7]);
+    }
 }
 
 ALWAYS_INLINE void TRACE_REG_DUMP()
 {
-    Reg_Dump(Cortex_Handler_ReadSP(), Cortex_Handler_SaveR4_R11());
+    auto sp = Cortex_Handler_ReadSP();
+    // reset SP in case it's invalid
+    __asm volatile( \
+        "movw r1, #:lower16:%0\n"
+        "movt r1, #:upper16:%0\n"
+        "mov sp, r1\n" : : "i" (&__stack_end) : "r1");
+    auto regs = Cortex_Handler_SaveR4_R11();
+    Reg_Dump(sp, regs);
 }
 #else
 #define TRACE_REG_DUMP()
