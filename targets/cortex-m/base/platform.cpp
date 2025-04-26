@@ -22,6 +22,10 @@ int Cortex_DebugWrite(unsigned channelAndSize, uint32_t data)
     auto& port = ITM->PORT[channel];
     if (!port.u32)
     {
+#ifdef PLATFORM_WATCHDOG_HIT
+        // waiting for trace can take a while, we need to reset the watchdog
+        PLATFORM_WATCHDOG_HIT();
+#endif
         // wait for a while for the port to become available
         unsigned wait = 2550;
         do
@@ -39,8 +43,6 @@ int Cortex_DebugWrite(unsigned channelAndSize, uint32_t data)
         case 1: port.u16 = data; break;
         case 2: port.u32 = data; break;
     }
-#ifdef PLATFORM_WATCHDOG_HIT
-    PLATFORM_WATCHDOG_HIT();
-#endif
+
     return true;
 }
