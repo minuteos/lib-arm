@@ -10,6 +10,8 @@
 
 #pragma once
 
+#undef PLATFORM_DBG_CHAR
+#undef PLATFORM_DBG_ACTIVE
 #define PLATFORM_DBG_CHAR(channel, ch) angel_output(NULL, ch)
 #define PLATFORM_DBG_ACTIVE(channel) ((channel) == 0)
 

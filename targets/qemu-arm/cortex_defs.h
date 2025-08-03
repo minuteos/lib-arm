@@ -12,4 +12,5 @@
 
 #include_next <cortex_defs.h>
 
+#undef CORTEX_HALT
 #define CORTEX_HALT(res) exit(res)
